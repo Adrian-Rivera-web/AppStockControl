@@ -6,7 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appstockcontrol_grupo_07.ui.screen.RegistroScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ResumenScreen
+import com.example.appstockcontrol_grupo_07.ui.screen.HomeScreen
+import com.example.appstockcontrol_grupo_07.ui.screen.LoginScreen
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
 @Composable
@@ -18,13 +19,16 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = "registro"
+        startDestination = "login"
     ) {
-        composable(route = "registro") {
-            RegistroScreen(navController, usuarioViewModel)
+        composable(route = "login") {
+            LoginScreen(navController,usuarioViewModel)
         }
-        composable(route = "resumen") {
-            ResumenScreen(usuarioViewModel)
+        composable(route = "registro") {
+            RegistroScreen(navController,usuarioViewModel)
+        }
+        composable(route = "home") {
+            HomeScreen(navController,usuarioViewModel)
         }
     }
 }
