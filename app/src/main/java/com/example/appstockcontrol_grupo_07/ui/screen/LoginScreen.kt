@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 import kotlin.let
+import com.example.appstockcontrol_grupo_07.navigation.Route // si usas Route.Register.path
+
 
 @Composable
 fun LoginScreen(
@@ -70,20 +72,17 @@ fun LoginScreen(
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp) // Espacio entre botones
         ) {
             // Botón "Inicio Sesion"
+            // Botón para ir a Registro
             Button(
-                onClick = { navController.navigate(route = "home") }, // Navega a Home al presionar
-                modifier = Modifier.weight(1f)                        // Ocupa la mitad del Row
-            ) {
-                Text(text = "Inicio Sesion")
-            }
+                onClick = { navController.navigate(Route.Register.path) },
+                modifier = Modifier.weight(1f)
+            ) { Text("Cuenta Nueva") }
 
-            // Botón "Cuenta Nueva"
+// Botón para ir a Home
             Button(
-                onClick = { navController.navigate(route = "registro") }, // Navega a Registro
-                modifier = Modifier.weight(1f)                              // Ocupa la otra mitad del Row
-            ) {
-                Text(text = "Cuenta Nueva")
-            }
+                onClick = { navController.navigate(Route.Home.path) },
+                modifier = Modifier.weight(1f)
+            ) { Text("Inicio Sesion") }
         }
     }
 }
