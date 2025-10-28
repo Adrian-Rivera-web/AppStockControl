@@ -130,13 +130,20 @@ fun AppNavGraph(
                     AppBottomBarV2(
                         currentRoute = currentRoute,
                         onNavigate = navigateTo,
-                        onOpenDrawer = openDrawer, // Ahora es una función válida
+                        onOpenDrawer = openDrawer,
                         onProfile = {
                             navigateTo("perfil")
                         },
                         onLogout = {
+                            println("DEBUG: AppNavGraph - Cerrando sesión desde BottomBar")
                             usuarioViewModel.cerrarSesion()
-                            navigateTo(Route.Login.path)
+                            navController.navigate(Route.Login.path) {
+                                // Usar el startDestinationId en lugar de un número fijo
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
@@ -189,7 +196,9 @@ fun AppNavGraph(
                 composable(Route.Proveedores.path) { ProveedoresScreen(navController) }
                 composable(Route.FormularioProveedores.path) { FormularioProveedoresScreen(navController) }
                 composable(Route.ListaProveedores.path) { ListaProveedoresScreen(navController) }
-                composable(Route.Usuario.path) { UsuarioScreen(navController) }
+                composable(Route.Usuario.path) {
+                    UsuarioScreen(navController, usuarioViewModel)
+                }
             }
         }
     }

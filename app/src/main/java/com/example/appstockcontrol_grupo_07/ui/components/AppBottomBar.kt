@@ -20,14 +20,13 @@ data class BottomNavItem(
     val isAction: Boolean = false
 )
 
-// ✅ SOLO UNA DEFINICIÓN de esta función
 @Composable
 fun AppBottomBarV2(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     onOpenDrawer: () -> Unit = {},
     onProfile: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {} // ✅ Parámetro opcional
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Menú", Icons.Filled.Menu, null, true),

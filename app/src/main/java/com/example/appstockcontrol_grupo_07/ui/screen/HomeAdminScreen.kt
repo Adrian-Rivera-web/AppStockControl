@@ -24,17 +24,18 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 @Composable
 fun HomeAdminScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel compartido
+    usuarioViewModel: UsuarioViewModel,
     onHome: () -> Unit = {},
     onLogin: () -> Unit = {},
     onRegister: () -> Unit = {}
 ) {
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val esAdmin by usuarioViewModel.esAdmin.collectAsState()
+
     println("DEBUG: HomeAdminScreen - Usuario: $usuarioLogueado, esAdmin: $esAdmin")
 
-    // VERIFICAR SI ES ADMINISTRADOR - SI NO LO ES, REDIRIGIR
-    if (!esAdmin) {
+    // ✅ VERIFICAR SI ES ADMINISTRADOR - SI NO LO ES, REDIRIGIR
+    if (!esAdmin && usuarioLogueado != null) {
         LaunchedEffect(Unit) {
             println("DEBUG: HomeAdminScreen - No es admin, redirigiendo a Home")
             navController.navigate(Route.Home.path) {
@@ -52,9 +53,7 @@ fun HomeAdminScreen(
 
         Button(
             onClick = {
-                navController.navigate(Route.Productos.path) {
-                    popUpTo(Route.Productos.path) { inclusive = true }
-                }
+                navController.navigate(Route.Productos.path)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -65,7 +64,10 @@ fun HomeAdminScreen(
 
         // Botón para administrar usuarios
         Button(
-            onClick = { navController.navigate(Route.Usuario.path) },
+            onClick = {
+                println("DEBUG: HomeAdminScreen - Navegando a UsuarioScreen")
+                navController.navigate(Route.Usuario.path)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
@@ -78,12 +80,22 @@ fun HomeAdminScreen(
             Text("Administrar Usuarios")
         }
 
+        // ✅ CORREGIDO: Cierre de sesión más seguro
         Button(
             onClick = {
+                println("DEBUG: HomeAdminScreen - Iniciando cierre de sesión")
                 usuarioViewModel.cerrarSesion()
+
+                // Navegar a Login de manera segura
                 navController.navigate(Route.Login.path) {
-                    popUpTo(Route.HomeAdmin.path) { inclusive = true }
+                    // Limpiar la pila de navegación hasta la raíz
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                    // Evitar múltiples copias de Login
+                    launchSingleTop = true
                 }
+                println("DEBUG: HomeAdminScreen - Navegación a Login completada")
             },
             modifier = Modifier
                 .fillMaxWidth()

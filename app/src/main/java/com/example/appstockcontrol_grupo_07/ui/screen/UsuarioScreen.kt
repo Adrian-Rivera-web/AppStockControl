@@ -30,14 +30,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun UsuarioScreen(
     navController: NavController,
+    usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel de usuario
     adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModelFactory(
             UserRepository(
                 AppDatabase.getInstance(LocalContext.current).userDao()
             )
         )
-    ),
-    usuarioViewModel: UsuarioViewModel = viewModel()
+    )
 ) {
     // Verificar si el usuario actual es administrador
     val esAdmin by usuarioViewModel.esAdmin.collectAsState()

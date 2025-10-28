@@ -18,7 +18,7 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 @Composable
 fun HomeScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel compartido
+    usuarioViewModel: UsuarioViewModel,
     onHome: () -> Unit = {},
     onLogin: () -> Unit = {},
     onRegister: () -> Unit = {}
@@ -33,14 +33,13 @@ fun HomeScreen(
 
         Button(
             onClick = {
-                navController.navigate(Route.Productos.path) {
-                    popUpTo(Route.Productos.path) { inclusive = true }
-                }
+                navController.navigate(Route.Productos.path)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Productos")
         }
+
         Button(
             onClick = {
                 navController.navigate(Route.Categoria.path)
@@ -68,16 +67,26 @@ fun HomeScreen(
             Text("Provedores")
         }
 
+        // ✅ CORREGIDO: Cierre de sesión más seguro
         Button(
             onClick = {
+                println("DEBUG: HomeScreen - Iniciando cierre de sesión")
                 usuarioViewModel.cerrarSesion()
+
+                // Navegar a Login de manera segura
                 navController.navigate(Route.Login.path) {
-                    popUpTo(Route.Home.path) { inclusive = true }
+                    // Limpiar la pila de navegación hasta la raíz
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                    // Evitar múltiples copias de Login
+                    launchSingleTop = true
                 }
+                println("DEBUG: HomeScreen - Navegación a Login completada")
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Cerrar Sesion")
+            Text(text = "Cerrar Sesión")
         }
     }
 }
