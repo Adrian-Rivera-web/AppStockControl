@@ -6,6 +6,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -24,7 +25,6 @@ import com.example.appstockcontrol_grupo_07.ui.screen.LoginScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.PerfilScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.RegistroScreen
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appstockcontrol_grupo_07.ui.screen.CategoriaScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.EntradasScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.Entradas_y_Salidas_ProductosScreen
@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
-    usuarioViewModel: UsuarioViewModel // Recibir el ViewModel desde MainActivity
+    usuarioViewModel: UsuarioViewModel
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -52,6 +52,17 @@ fun AppNavGraph(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // Obtener el estado del usuario para determinar startDestination y navegación
+    val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
+    val esAdmin by usuarioViewModel.esAdmin.collectAsState()
+
+    // Determinar startDestination dinámicamente
+    val startDestination = if (usuarioLogueado != null) {
+        if (esAdmin) Route.HomeAdmin.path else Route.Home.path
+    } else {
+        Route.Login.path
+    }
+
     // Función helper para navegación
     val navigateTo: (String) -> Unit = { route ->
         navController.navigate(route) {
@@ -59,7 +70,7 @@ fun AppNavGraph(
         }
     }
 
-    // Determinar cuándo mostrar las barras
+    // Determinar cuándo mostrar las barras - SOLO en pantallas principales
     val mostrarTopBar = when (currentRoute) {
         Route.Home.path, Route.HomeAdmin.path -> true
         else -> false
@@ -70,7 +81,7 @@ fun AppNavGraph(
         else -> false
     }
 
-    // CORREGIDO: Declarar openDrawer como función lambda
+    // Función para abrir el drawer
     val openDrawer: () -> Unit = {
         scope.launch {
             drawerState.open()
@@ -87,7 +98,9 @@ fun AppNavGraph(
     // Lista de ítems para el drawer
     val drawerItems = defaultDrawerItems(
         onHome = {
-            navigateTo(Route.Home.path)
+            // Navegar al home correcto según el rol
+            val homeRoute = if (esAdmin) Route.HomeAdmin.path else Route.Home.path
+            navigateTo(homeRoute)
             closeDrawer()
         },
         onLogin = {
@@ -103,7 +116,7 @@ fun AppNavGraph(
     // Usar ModalNavigationDrawer para el drawer lateral
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = mostrarBottomBar,
+        gesturesEnabled = mostrarBottomBar, // Solo permitir gestos donde hay bottom bar
         drawerContent = {
             AppDrawer(
                 currentRoute = currentRoute,
@@ -114,23 +127,33 @@ fun AppNavGraph(
     ) {
         Scaffold(
             topBar = {
-                // MOSTRAR TopBar solo en Home y HomeAdmin
                 if (mostrarTopBar) {
                     AppTopBar(
-                        onOpenDrawer = openDrawer, // Ahora es una función válida
-                        onHome = { navigateTo(Route.Home.path) },
-                        onLogin = { navigateTo(Route.Login.path) },
-                        onRegister = { navigateTo(Route.Register.path) }
+                        onOpenDrawer = openDrawer,
+                        onSettings = {
+                            // ✅ Navegar a pantalla de configuración (puedes crear esta pantalla después)
+                            // Por ahora puedes dejarlo vacío o navegar a un placeholder
+                            println("Navegar a pantalla de configuración")
+                        },
+                        onLogout = {
+                            println("DEBUG: AppNavGraph - Cerrando sesión desde TopBar")
+                            usuarioViewModel.cerrarSesion()
+                            navController.navigate(Route.Login.path) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 }
             },
             bottomBar = {
-                // SOLO se muestra en Home y HomeAdmin
                 if (mostrarBottomBar) {
                     AppBottomBarV2(
                         currentRoute = currentRoute,
                         onNavigate = navigateTo,
-                        onOpenDrawer = openDrawer,
+                        isAdmin = esAdmin, // ✅ Pasar el estado de admin
                         onProfile = {
                             navigateTo("perfil")
                         },
@@ -138,7 +161,6 @@ fun AppNavGraph(
                             println("DEBUG: AppNavGraph - Cerrando sesión desde BottomBar")
                             usuarioViewModel.cerrarSesion()
                             navController.navigate(Route.Login.path) {
-                                // Usar el startDestinationId en lugar de un número fijo
                                 popUpTo(navController.graph.startDestinationId) {
                                     inclusive = true
                                 }
@@ -151,51 +173,72 @@ fun AppNavGraph(
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = Route.Login.path,
+                startDestination = startDestination, // ✅ Start dinámico
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable(Route.Login.path) {
-                    LoginScreen(navController, usuarioViewModel) // Pasar el ViewModel
+                    LoginScreen(navController, usuarioViewModel)
                 }
-                composable(Route.Register.path) { RegistroScreen(navController) }
+                composable(Route.Register.path) {
+                    RegistroScreen(navController)
+                }
                 composable(Route.Home.path) {
                     HomeScreen(
                         navController = navController,
-                        usuarioViewModel = usuarioViewModel, // Pasar el ViewModel
-                        onHome = { navigateTo(Route.Home.path) },
-                        onLogin = { navigateTo(Route.Login.path) },
-                        onRegister = { navigateTo(Route.Register.path) }
+                        usuarioViewModel = usuarioViewModel
+                        // ❌ Quitamos onHome, onLogin, onRegister - ya no son necesarios
                     )
                 }
                 composable(Route.HomeAdmin.path) {
                     HomeAdminScreen(
                         navController = navController,
-                        usuarioViewModel = usuarioViewModel, // Pasar el ViewModel
-                        onHome = { navigateTo(Route.Home.path) },
-                        onLogin = { navigateTo(Route.Login.path) },
-                        onRegister = { navigateTo(Route.Register.path) }
+                        usuarioViewModel = usuarioViewModel
+                        // ❌ Quitamos onHome, onLogin, onRegister - ya no son necesarios
                     )
                 }
                 composable("perfil") {
                     PerfilScreen(
                         navController = navController,
-                        usuarioViewModel = usuarioViewModel, // Pasar el ViewModel
-                        onHome = { navigateTo(Route.Home.path) }
+                        usuarioViewModel = usuarioViewModel
+                        // ❌ Quitamos onHome - ya no es necesario
                     )
                 }
-                composable(Route.Productos.path) { ProductosScreen(navController) }
-                composable(Route.ListaProductos.path) { ListaProductosScreen(navController) }
-                composable(Route.FormularioProducto.path) { FormularioProductoScreen(navController) }
-                composable(Route.Categoria.path) { CategoriaScreen(navController) }
-                composable(Route.ListaCategoria.path) { ListaCategoriaScreen(navController) }
-                composable(Route.FormularioCategoria.path) { FormularioCategoriaScreen(navController) }
-                composable(Route.FormularioProducto.path) { FormularioProductoScreen(navController) }
-                composable(Route.Entradas_y_Salidas_Productos.path) { Entradas_y_Salidas_ProductosScreen(navController) }
-                composable(Route.Entradas.path) { EntradasScreen(navController) }
-                composable(Route.Salidas.path) { SalidasScreen(navController) }
-                composable(Route.Proveedores.path) { ProveedoresScreen(navController) }
-                composable(Route.FormularioProveedores.path) { FormularioProveedoresScreen(navController) }
-                composable(Route.ListaProveedores.path) { ListaProveedoresScreen(navController) }
+                composable(Route.Productos.path) {
+                    ProductosScreen(navController)
+                }
+                composable(Route.ListaProductos.path) {
+                    ListaProductosScreen(navController)
+                }
+                composable(Route.FormularioProducto.path) {
+                    FormularioProductoScreen(navController)
+                }
+                composable(Route.Categoria.path) {
+                    CategoriaScreen(navController)
+                }
+                composable(Route.ListaCategoria.path) {
+                    ListaCategoriaScreen(navController)
+                }
+                composable(Route.FormularioCategoria.path) {
+                    FormularioCategoriaScreen(navController)
+                }
+                composable(Route.Entradas_y_Salidas_Productos.path) {
+                    Entradas_y_Salidas_ProductosScreen(navController)
+                }
+                composable(Route.Entradas.path) {
+                    EntradasScreen(navController)
+                }
+                composable(Route.Salidas.path) {
+                    SalidasScreen(navController)
+                }
+                composable(Route.Proveedores.path) {
+                    ProveedoresScreen(navController)
+                }
+                composable(Route.FormularioProveedores.path) {
+                    FormularioProveedoresScreen(navController)
+                }
+                composable(Route.ListaProveedores.path) {
+                    ListaProveedoresScreen(navController)
+                }
                 composable(Route.Usuario.path) {
                     UsuarioScreen(navController, usuarioViewModel)
                 }

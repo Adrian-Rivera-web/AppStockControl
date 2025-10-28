@@ -18,17 +18,20 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 @Composable
 fun HomeScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel,
-    onHome: () -> Unit = {},
-    onLogin: () -> Unit = {},
-    onRegister: () -> Unit = {}
+    usuarioViewModel: UsuarioViewModel
 ) {
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
+    val esAdmin by usuarioViewModel.esAdmin.collectAsState()
 
     Column(Modifier.padding(all = 16.dp)) {
         Text(
             text = "Bienvenido ${usuarioLogueado ?: "Usuario"}",
             style = MaterialTheme.typography.headlineMedium
+        )
+        Text(
+            text = "Rol: ${if (esAdmin) "Administrador" else "Usuario Normal"}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(vertical = 8.dp)
         )
 
         Button(

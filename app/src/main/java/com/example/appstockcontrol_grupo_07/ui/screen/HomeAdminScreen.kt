@@ -24,10 +24,7 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 @Composable
 fun HomeAdminScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel,
-    onHome: () -> Unit = {},
-    onLogin: () -> Unit = {},
-    onRegister: () -> Unit = {}
+    usuarioViewModel: UsuarioViewModel
 ) {
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val esAdmin by usuarioViewModel.esAdmin.collectAsState()

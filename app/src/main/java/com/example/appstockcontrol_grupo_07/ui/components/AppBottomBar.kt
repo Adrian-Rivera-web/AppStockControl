@@ -2,7 +2,6 @@ package com.example.appstockcontrol_grupo_07.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
@@ -24,14 +23,16 @@ data class BottomNavItem(
 fun AppBottomBarV2(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
-    onOpenDrawer: () -> Unit = {},
+    isAdmin: Boolean, // ✅ Recibir estado de admin
     onProfile: () -> Unit = {},
-    onLogout: () -> Unit = {} // ✅ Parámetro opcional
+    onLogout: () -> Unit = {}
 ) {
+    // Definir rutas dinámicamente según el rol
+    val homeRoute = if (isAdmin) "homeAdmin" else "home"
+
     val bottomNavItems = listOf(
-        BottomNavItem("Menú", Icons.Filled.Menu, null, true),
-        BottomNavItem("Inicio", Icons.Filled.Home, "home"),
         BottomNavItem("Productos", Icons.Filled.ShoppingCart, "productos"),
+        BottomNavItem("Inicio", Icons.Filled.Home, homeRoute), // ✅ Ruta dinámica
         BottomNavItem("Perfil", Icons.Filled.Person, "perfil")
     )
 
@@ -45,12 +46,12 @@ fun AppBottomBarV2(
                     )
                 },
                 label = { Text(item.label) },
-                selected = if (item.isAction) false else currentRoute == item.route,
+                selected = currentRoute == item.route,
                 onClick = {
-                    when {
-                        item.isAction -> onOpenDrawer()
-                        item.route == "perfil" -> onProfile()
-                        else -> item.route?.let { onNavigate(it) }
+                    if (item.route == "perfil") {
+                        onProfile()
+                    } else {
+                        item.route?.let { onNavigate(it) }
                     }
                 }
             )

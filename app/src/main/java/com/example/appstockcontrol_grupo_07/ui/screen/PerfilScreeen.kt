@@ -12,16 +12,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
 @Composable
 fun PerfilScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel compartido
-    onHome: () -> Unit = {}
+    usuarioViewModel: UsuarioViewModel
 ) {
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val nombreUsuario by usuarioViewModel.nombreUsuario.collectAsState()
+    val esAdmin by usuarioViewModel.esAdmin.collectAsState()
 
     Column(Modifier.padding(all = 16.dp)) {
         Text(
@@ -41,11 +42,40 @@ fun PerfilScreen(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
+        Text(
+            text = "Rol: ${if (esAdmin) "Administrador" else "Usuario Normal"}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
+        // Botón para volver al home correcto según el rol
         Button(
-            onClick = onHome,
-            modifier = Modifier.fillMaxWidth()
+            onClick = {
+                val homeRoute = if (esAdmin) Route.HomeAdmin.path else Route.Home.path
+                navController.navigate(homeRoute) {
+                    popUpTo(homeRoute) { inclusive = true }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
             Text("Volver al Home")
+        }
+
+        // Botón de cierre de sesión
+        Button(
+            onClick = {
+                usuarioViewModel.cerrarSesion()
+                navController.navigate(Route.Login.path) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Cerrar Sesión")
         }
     }
 }
