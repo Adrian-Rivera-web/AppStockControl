@@ -12,6 +12,7 @@ import androidx.compose.material3.ModalDrawerSheet // Contenedor de contenido de
 import androidx.compose.runtime.Composable // Marcador composable
 import androidx.compose.ui.Modifier // Modificador
 import androidx.compose.ui.graphics.vector.ImageVector // Tipo de ícono
+
 // Pequeña data class para representar cada opción del drawer
 data class DrawerItem( // Estructura de un ítem de menú lateral
     val label: String, // Texto a mostrar

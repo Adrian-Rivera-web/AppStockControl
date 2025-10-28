@@ -3,10 +3,16 @@ package com.example.appstockcontrol_grupo_07.ui.screen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,7 +22,7 @@ import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
 @Composable
-fun HomeScreen(
+fun HomeAdminScreen(
     navController: NavController,
     usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel compartido
     onHome: () -> Unit = {},
@@ -24,10 +30,23 @@ fun HomeScreen(
     onRegister: () -> Unit = {}
 ) {
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
+    val esAdmin by usuarioViewModel.esAdmin.collectAsState()
+    println("DEBUG: HomeAdminScreen - Usuario: $usuarioLogueado, esAdmin: $esAdmin")
+
+    // VERIFICAR SI ES ADMINISTRADOR - SI NO LO ES, REDIRIGIR
+    if (!esAdmin) {
+        LaunchedEffect(Unit) {
+            println("DEBUG: HomeAdminScreen - No es admin, redirigiendo a Home")
+            navController.navigate(Route.Home.path) {
+                popUpTo(Route.HomeAdmin.path) { inclusive = true }
+            }
+        }
+        return
+    }
 
     Column(Modifier.padding(all = 16.dp)) {
         Text(
-            text = "Bienvenido ${usuarioLogueado ?: "Usuario"}",
+            text = "Bienvenido Admin: ${usuarioLogueado ?: "Usuario"}",
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -37,47 +56,40 @@ fun HomeScreen(
                     popUpTo(Route.Productos.path) { inclusive = true }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
             Text(text = "Productos")
         }
-        Button(
-            onClick = {
-                navController.navigate(Route.Categoria.path)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Categoria")
-        }
 
+        // Botón para administrar usuarios
         Button(
-            onClick = {
-                navController.navigate(Route.Entradas_y_Salidas_Productos.path)
-            },
-            modifier = Modifier.fillMaxWidth()
+            onClick = { navController.navigate(Route.Usuario.path) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
-            Text("Entradas Y Salidas")
-        }
-
-        Button(
-            onClick = {
-                navController.navigate(Route.Proveedores.path)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Provedores")
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Usuarios"
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Administrar Usuarios")
         }
 
         Button(
             onClick = {
                 usuarioViewModel.cerrarSesion()
                 navController.navigate(Route.Login.path) {
-                    popUpTo(Route.Home.path) { inclusive = true }
+                    popUpTo(Route.HomeAdmin.path) { inclusive = true }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
-            Text(text = "Cerrar Sesion")
+            Text(text = "Cerrar Sesión")
         }
     }
 }

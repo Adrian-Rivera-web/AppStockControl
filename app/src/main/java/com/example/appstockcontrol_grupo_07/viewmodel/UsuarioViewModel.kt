@@ -1,61 +1,31 @@
 package com.example.appstockcontrol_grupo_07.viewmodel
+
 import androidx.lifecycle.ViewModel
-import com.example.appstockcontrol_grupo_07.model.UsuarioErrores
-import com.example.appstockcontrol_grupo_07.model.UsuarioUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import kotlin.collections.isNotEmpty
-import kotlin.text.contains
-import kotlin.text.isBlank
 
-class UsuarioViewModel  : ViewModel() {
+class UsuarioViewModel : ViewModel() {
+    private val _usuarioLogueado = MutableStateFlow<String?>(null)
+    val usuarioLogueado: StateFlow<String?> = _usuarioLogueado
 
-    private val _estado = MutableStateFlow(value = UsuarioUiState())
-    val estado: StateFlow<UsuarioUiState> = _estado
+    private val _nombreUsuario = MutableStateFlow<String?>(null)
+    val nombreUsuario: StateFlow<String?> = _nombreUsuario
 
-    fun onNombreChange(valor: String) {
-        _estado.update { it.copy(nombre = valor, errores = it.errores.copy(nombre = null)) }
+    private val _esAdmin = MutableStateFlow(false)
+    val esAdmin: StateFlow<Boolean> = _esAdmin
+
+    // ✅ ACTUALIZAR para aceptar el nombre
+    fun iniciarSesion(correo: String, esAdmin: Boolean = false, nombre: String? = null) {
+        println("DEBUG: UsuarioViewModel - Iniciando sesión: correo=$correo, esAdmin=$esAdmin, nombre=$nombre")
+        _usuarioLogueado.value = correo
+        _esAdmin.value = esAdmin
+        _nombreUsuario.value = nombre
     }
 
-    // Actualiza el campo correo
-    fun onCorreoChange(valor: String) {
-        _estado.update { it.copy(correo = valor, errores = it.errores.copy(correo = null)) }
-    }
-
-    // Actualiza el campo clave
-    fun onClaveChange(valor: String) {
-        _estado.update { it.copy(clave = valor, errores = it.errores.copy(clave = null)) }
-    }
-
-    // Actualiza el campo dirección
-    fun onDireccionChange(valor: String) {
-        _estado.update { it.copy(direccion = valor, errores = it.errores.copy(direccion = null)) }
-    }
-
-    // Actualiza checkbox de aceptación
-    fun onAceptarTerminosChange(valor: Boolean) {
-        _estado.update { it.copy(aceptaTerminos = valor) }
-    }
-
-    fun validarFormulario(): Boolean {
-        val estadoActual = _estado.value
-        val errores = UsuarioErrores(
-            nombre = if (estadoActual.nombre.isBlank()) "Campo obligatorio" else null,
-            correo = if (!estadoActual.correo.contains("@")) "Correo inválido" else null,
-            clave = if (estadoActual.clave.length < 6) "Debe tener al menos 6 caracteres" else null,
-            direccion = if (estadoActual.direccion.isBlank()) "Campo obligatorio" else null
-        )
-
-        val hayErrores = listOfNotNull(
-            errores.nombre,
-            errores.correo,
-            errores.clave,
-            errores.direccion
-        ).isNotEmpty()
-
-        _estado.update { it.copy(errores = errores) }
-
-        return !hayErrores
+    fun cerrarSesion() {
+        println("DEBUG: Cerrando sesión")
+        _usuarioLogueado.value = null
+        _esAdmin.value = false
+        _nombreUsuario.value = null
     }
 }
