@@ -8,19 +8,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -43,6 +52,10 @@ fun RegistroScreen(
 ) {
     val estado by registroViewModel.estado.collectAsState()
     val isLoading by registroViewModel.isLoading.collectAsState()
+
+    // Estados para controlar visibilidad de contraseñas
+    var mostrarClave by remember { mutableStateOf(false) }
+    var mostrarClaveConfirmacion by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -97,12 +110,20 @@ fun RegistroScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Campo clave
+        // Campo clave - MODIFICADO
         OutlinedTextField(
             value = estado.clave,
             onValueChange = registroViewModel::onClaveChange,
             label = { Text(text = "Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (mostrarClave) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { mostrarClave = !mostrarClave }) {
+                    Icon(
+                        imageVector = if (mostrarClave) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (mostrarClave) "Ocultar contraseña" else "Mostrar contraseña"
+                    )
+                }
+            },
             isError = estado.errores.clave != null,
             supportingText = {
                 estado.errores.clave?.let {
@@ -112,12 +133,20 @@ fun RegistroScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Campo confirmación de contraseña
+        // Campo confirmación de contraseña - MODIFICADO
         OutlinedTextField(
             value = estado.claveConfirmacion,
             onValueChange = registroViewModel::onClaveConfirmacionChange,
             label = { Text(text = "Confirmar Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (mostrarClaveConfirmacion) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { mostrarClaveConfirmacion = !mostrarClaveConfirmacion }) {
+                    Icon(
+                        imageVector = if (mostrarClaveConfirmacion) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (mostrarClaveConfirmacion) "Ocultar contraseña" else "Mostrar contraseña"
+                    )
+                }
+            },
             isError = estado.errores.claveConfirmacion != null,
             supportingText = {
                 estado.errores.claveConfirmacion?.let {
