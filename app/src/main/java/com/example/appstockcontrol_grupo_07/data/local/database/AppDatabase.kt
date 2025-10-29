@@ -21,21 +21,21 @@ import kotlinx.coroutines.launch
     entities = [
         UserEntity::class,
         ProductoEntity::class,
-        CategoriaEntity::class  // Agregar la entidad Categoria
+        CategoriaEntity::class
     ],
-    version = 5,  // Incrementar versión porque agregamos nueva tabla
+    version = 6,  // ✅ Incrementar versión a 6
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun productoDao(): ProductoDao
-    abstract fun categoriaDao(): CategoriaDao  // Agregar el DAO de Categoria
+    abstract fun categoriaDao(): CategoriaDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        private const val DB_NAME = "ui_navegacion_v5.db"  // Incrementar versión
+        private const val DB_NAME = "ui_navegacion_v6.db"  // ✅ Cambiar nombre
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -61,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    .addMigrations(MIGRATION_4_5)  // Agregar migración
+                    .addMigrations(MIGRATION_5_6)  // ✅ Cambiar a nueva migración
                     .fallbackToDestructiveMigration()
                     .build()
 
@@ -71,34 +71,11 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // Migración de versión 4 a 5 - agregar tabla categorias
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
+        // ✅ NUEVA Migración de versión 5 a 6
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    """
-                    CREATE TABLE categorias (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        nombre TEXT NOT NULL,
-                        descripcion TEXT NOT NULL,
-                        fecha_creacion INTEGER NOT NULL,
-                        activa INTEGER NOT NULL
-                    )
-                    """
-                )
-
-                // Insertar algunas categorías por defecto
-                database.execSQL(
-                    """
-                    INSERT INTO categorias (nombre, descripcion, fecha_creacion, activa) 
-                    VALUES 
-                    ('Electrónicos', 'Productos electrónicos y dispositivos', ${System.currentTimeMillis()}, 1),
-                    ('Ropa', 'Prendas de vestir y accesorios', ${System.currentTimeMillis()}, 1),
-                    ('Hogar', 'Artículos para el hogar', ${System.currentTimeMillis()}, 1),
-                    ('Deportes', 'Equipos y artículos deportivos', ${System.currentTimeMillis()}, 1),
-                    ('Alimentos', 'Productos alimenticios y bebidas', ${System.currentTimeMillis()}, 1),
-                    ('Libros', 'Libros y material educativo', ${System.currentTimeMillis()}, 1)
-                    """
-                )
+                // Esta migración puede estar vacía si no hay cambios de esquema
+                // O puedes agregar cambios si los necesitas
             }
         }
 
@@ -106,7 +83,7 @@ abstract class AppDatabase : RoomDatabase() {
             try {
                 val userDao = database.userDao()
                 val productoDao = database.productoDao()
-                val categoriaDao = database.categoriaDao()  // Agregar categoriaDao
+                val categoriaDao = database.categoriaDao()
 
                 println("DEBUG: AppDatabase - DAOs obtenidos")
 
@@ -116,7 +93,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 println("DEBUG: AppDatabase - Conteo inicial - Usuarios: $userCount, Productos: $productoCount, Categorías: $categoriaCount")
 
-                // Inicializar usuarios si no existen
+                // ✅ INICIALIZAR USUARIOS SI NO EXISTEN
                 if (userCount == 0) {
                     println("DEBUG: AppDatabase - Insertando usuarios de prueba...")
 
@@ -145,6 +122,79 @@ abstract class AppDatabase : RoomDatabase() {
                     }
                 }
 
+                // ✅ INICIALIZAR CATEGORÍAS SI NO EXISTEN
+                if (categoriaCount == 0) {
+                    println("DEBUG: AppDatabase - Insertando categorías de prueba...")
+
+                    val categorias = listOf(
+                        CategoriaEntity(
+                            nombre = "Electrónicos",
+                            descripcion = "Productos electrónicos y dispositivos tecnológicos",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Ropa",
+                            descripcion = "Prendas de vestir y accesorios de moda",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Hogar",
+                            descripcion = "Artículos para el hogar y decoración",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Deportes",
+                            descripcion = "Equipos y artículos deportivos",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Alimentos",
+                            descripcion = "Productos alimenticios y bebidas",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Libros",
+                            descripcion = "Libros y material educativo",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Juguetes",
+                            descripcion = "Juguetes y juegos para todas las edades",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Salud y Belleza",
+                            descripcion = "Productos de cuidado personal y belleza",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Automotriz",
+                            descripcion = "Repuestos y accesorios para vehículos",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        ),
+                        CategoriaEntity(
+                            nombre = "Oficina",
+                            descripcion = "Artículos de oficina y papelería",
+                            fechaCreacion = System.currentTimeMillis(),
+                            activa = 1
+                        )
+                    )
+
+                    categorias.forEach { categoria ->
+                        val id = categoriaDao.insertar(categoria)
+                        println("DEBUG: AppDatabase - Insertada categoría: ${categoria.nombre} (ID: $id)")
+                    }
+                }
+
                 // ✅ INICIALIZAR PRODUCTOS SI NO EXISTEN
                 if (productoCount == 0) {
                     println("DEBUG: AppDatabase - Insertando productos de prueba...")
@@ -163,7 +213,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Mouse ergonómico inalámbrico con sensor óptico",
                             precio = 35.50,
                             stock = 25,
-                            categoria = "Accesorios",
+                            categoria = "Electrónicos",
                             proveedor = "Logitech"
                         ),
                         ProductoEntity(
@@ -171,7 +221,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Teclado mecánico RGB con switches azules",
                             precio = 89.99,
                             stock = 15,
-                            categoria = "Accesorios",
+                            categoria = "Electrónicos",
                             proveedor = "Redragon"
                         ),
                         ProductoEntity(
@@ -187,32 +237,88 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Auriculares inalámbricos con cancelación de ruido",
                             precio = 199.99,
                             stock = 18,
-                            categoria = "Audio",
+                            categoria = "Electrónicos",
                             proveedor = "Sony"
                         ),
                         ProductoEntity(
-                            nombre = "Tablet Android 10\"",
-                            descripcion = "Tablet Android con 64GB de almacenamiento",
-                            precio = 299.99,
-                            stock = 10,
-                            categoria = "Electrónicos",
-                            proveedor = "Xiaomi"
-                        ),
-                        ProductoEntity(
-                            nombre = "Impresora Multifuncional",
-                            descripcion = "Impresora láser WiFi con escáner y copiadora",
-                            precio = 179.99,
-                            stock = 6,
-                            categoria = "Oficina",
-                            proveedor = "HP"
-                        ),
-                        ProductoEntity(
-                            nombre = "Disco Duro Externo 1TB",
-                            descripcion = "Disco duro externo USB 3.0 portátil",
-                            precio = 59.99,
+                            nombre = "Camiseta Deportiva Nike",
+                            descripcion = "Camiseta deportiva de alta calidad para running",
+                            precio = 45.99,
                             stock = 30,
-                            categoria = "Almacenamiento",
-                            proveedor = "Western Digital"
+                            categoria = "Ropa",
+                            proveedor = "Nike"
+                        ),
+                        ProductoEntity(
+                            nombre = "Zapatillas Running Adidas",
+                            descripcion = "Zapatillas profesionales para running",
+                            precio = 89.99,
+                            stock = 20,
+                            categoria = "Deportes",
+                            proveedor = "Adidas"
+                        ),
+                        ProductoEntity(
+                            nombre = "Balón de Fútbol",
+                            descripcion = "Balón oficial tamaño 5 para competencia",
+                            precio = 29.99,
+                            stock = 15,
+                            categoria = "Deportes",
+                            proveedor = "Puma"
+                        ),
+                        ProductoEntity(
+                            nombre = "Sofá 3 Plazas",
+                            descripcion = "Sofá moderno de 3 plazas color gris",
+                            precio = 599.99,
+                            stock = 5,
+                            categoria = "Hogar",
+                            proveedor = "Muebles Chile"
+                        ),
+                        ProductoEntity(
+                            nombre = "Lámpara de Mesa LED",
+                            descripcion = "Lámpara LED moderna con regulador de intensidad",
+                            precio = 39.99,
+                            stock = 25,
+                            categoria = "Hogar",
+                            proveedor = "Iluminación Home"
+                        ),
+                        ProductoEntity(
+                            nombre = "Arroz Integral 1kg",
+                            descripcion = "Arroz integral orgánico en paquete de 1kg",
+                            precio = 3.99,
+                            stock = 50,
+                            categoria = "Alimentos",
+                            proveedor = "Super Alimentos"
+                        ),
+                        ProductoEntity(
+                            nombre = "Aceite de Oliva Extra Virgen",
+                            descripcion = "Aceite de oliva extra virgen 500ml",
+                            precio = 12.99,
+                            stock = 40,
+                            categoria = "Alimentos",
+                            proveedor = "Aceites Premium"
+                        ),
+                        ProductoEntity(
+                            nombre = "Clean Code: Manual de desarrollo ágil",
+                            descripcion = "Libro sobre principios de desarrollo de software",
+                            precio = 49.99,
+                            stock = 10,
+                            categoria = "Libros",
+                            proveedor = "Editorial Técnica"
+                        ),
+                        ProductoEntity(
+                            nombre = "Set de Lego Technic",
+                            descripcion = "Set de construcción Lego para mayores de 10 años",
+                            precio = 79.99,
+                            stock = 8,
+                            categoria = "Juguetes",
+                            proveedor = "Lego"
+                        ),
+                        ProductoEntity(
+                            nombre = "Crema Hidratante Facial",
+                            descripcion = "Crema hidratante para piel seca 50ml",
+                            precio = 24.99,
+                            stock = 35,
+                            categoria = "Salud y Belleza",
+                            proveedor = "Dermatológica"
                         )
                     )
 
@@ -222,23 +328,24 @@ abstract class AppDatabase : RoomDatabase() {
                     }
                 }
 
-                // ✅ VERIFICACIÓN CORREGIDA - Usar .first() para obtener la lista del Flow
+                // ✅ VERIFICACIÓN FINAL
                 val allUsers = userDao.getAll()
                 val allProductos = productoDao.getAll().first()
-                val allCategorias = categoriaDao.obtenerTodas().first()  // Agregar categorías
+                val allCategorias = categoriaDao.obtenerTodas().first()
 
-                println("DEBUG: AppDatabase - Verificación - Total usuarios: ${allUsers.size}")
-                println("DEBUG: AppDatabase - Verificación - Total productos: ${allProductos.size}")
-                println("DEBUG: AppDatabase - Verificación - Total categorías: ${allCategorias.size}")
-
-                // ✅ CORREGIDO: Ahora allProductos es List<ProductoEntity>, podemos usar forEach
-                allProductos.forEach { producto ->
-                    println("DEBUG: AppDatabase - Producto: ${producto.nombre} | Precio: $${producto.precio} | Stock: ${producto.stock}")
-                }
+                println("DEBUG: AppDatabase - Verificación Final:")
+                println("DEBUG: AppDatabase - Total usuarios: ${allUsers.size}")
+                println("DEBUG: AppDatabase - Total productos: ${allProductos.size}")
+                println("DEBUG: AppDatabase - Total categorías: ${allCategorias.size}")
 
                 // Mostrar categorías
                 allCategorias.forEach { categoria ->
                     println("DEBUG: AppDatabase - Categoría: ${categoria.nombre} | Descripción: ${categoria.descripcion}")
+                }
+
+                // Mostrar productos
+                allProductos.forEach { producto ->
+                    println("DEBUG: AppDatabase - Producto: ${producto.nombre} | Categoría: ${producto.categoria} | Precio: $${producto.precio} | Stock: ${producto.stock}")
                 }
 
             } catch (e: Exception) {

@@ -1,6 +1,7 @@
 package com.example.appstockcontrol_grupo_07.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,12 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
+import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
 import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.FormularioProductoViewModel
@@ -45,13 +50,16 @@ fun FormularioProductoScreen(
     val context = LocalContext.current
     val database = AppDatabase.getInstance(context)
 
-    // ✅ CORREGIDO: ProductoRepository con ProductoDao
+    // ✅ CORREGIDO: Ambos repositorios necesarios
     val productoRepository = ProductoRepository(database.productoDao())
+    val categoriaRepository = CategoriaRepository(database.categoriaDao())
+
     val viewModel: FormularioProductoViewModel = viewModel(
-        factory = FormularioProductoViewModelFactory(productoRepository)
+        factory = FormularioProductoViewModelFactory(productoRepository, categoriaRepository)
     )
 
     val uiState by viewModel.uiState.collectAsState()
+    val categoriasExistentes by viewModel.categoriasExistentes.collectAsState()
 
     // Cargar producto si estamos editando
     LaunchedEffect(productoId) {
@@ -162,24 +170,55 @@ fun FormularioProductoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Categoría
-            OutlinedTextField(
-                value = uiState.categoria,
-                onValueChange = { viewModel.onCategoriaChange(it) },
-                label = { Text("Categoría") },
-                isError = uiState.errores.categoria != null,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // ✅ CAMPO CATEGORÍA MEJORADO - Con validación y sugerencias
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = uiState.categoria,
+                        onValueChange = { viewModel.onCategoriaChange(it) },
+                        label = { Text("Categoría") },
+                        placeholder = { Text("Ej: Electrónicos, Ropa, Hogar...") },
+                        isError = uiState.errores.categoria != null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-            if (uiState.errores.categoria != null) {
-                Text(
-                    text = uiState.errores.categoria ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                )
+                    if (uiState.errores.categoria != null) {
+                        Text(
+                            text = uiState.errores.categoria ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // ✅ INFORMACIÓN DE CATEGORÍAS DISPONIBLES
+            if (categoriasExistentes.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Text(
+                            text = "Categorías disponibles:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = categoriasExistentes.joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Campo Proveedor
             OutlinedTextField(

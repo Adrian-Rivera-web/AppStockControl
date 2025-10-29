@@ -14,6 +14,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel  // ✅ AÑADIR ESTA IMPORTACIÓN
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import com.example.appstockcontrol_grupo_07.ui.components.adminDrawerItems
+import com.example.appstockcontrol_grupo_07.ui.components.userDrawerItems
+import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -29,6 +32,7 @@ import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
 import com.example.appstockcontrol_grupo_07.ui.screen.*
 import com.example.appstockcontrol_grupo_07.viewmodel.*  // ✅ ESTA DEBERÍA INCLUIR TODOS LOS VIEWMODELS
 import kotlinx.coroutines.launch
+import com.example.appstockcontrol_grupo_07.viewmodel.CategoriaViewModel
 
 @Composable
 fun AppNavGraph(
@@ -90,22 +94,63 @@ fun AppNavGraph(
     }
 
     // Lista de ítems para el drawer
-    val drawerItems = defaultDrawerItems(
-        onHome = {
-            // Navegar al home correcto según el rol
-            val homeRoute = if (esAdmin) Route.HomeAdmin.path else Route.Home.path
-            navigateTo(homeRoute)
-            closeDrawer()
-        },
-        onLogin = {
-            navigateTo(Route.Login.path)
-            closeDrawer()
-        },
-        onRegister = {
-            navigateTo(Route.Register.path)
-            closeDrawer()
+    // Lista de ítems para el drawer - DIFERENCIADA POR ROL
+    val drawerItems = if (usuarioLogueado != null) {
+        if (esAdmin) {
+            adminDrawerItems(
+                onHome = {
+                    navigateTo(Route.HomeAdmin.path)
+                    closeDrawer()
+                },
+                onListaUsuarios = {
+                    navigateTo(Route.Usuario.path)
+                    closeDrawer()
+                },
+                onListaProductos = {
+                    navigateTo(Route.ListaProductos.path)
+                    closeDrawer()
+                },
+                onFormularioProducto = {
+                    navigateTo(Route.FormularioProducto.path)
+                    closeDrawer()
+                },
+                onListaCategorias = {
+                    navigateTo(Route.ListaCategoria.path)
+                    closeDrawer()
+                },
+                onFormularioCategoria = {
+                    navigateTo(Route.FormularioCategoria.path)
+                    closeDrawer()
+                }
+            )
+        } else {
+            userDrawerItems(
+                onHome = {
+                    navigateTo(Route.Home.path)
+                    closeDrawer()
+                },
+                onListaProductos = {
+                    navigateTo(Route.ListaProductos.path)
+                    closeDrawer()
+                }
+            )
         }
-    )
+    } else {
+        defaultDrawerItems(
+            onHome = {
+                navigateTo(Route.Login.path) // Redirigir a login si no está logueado
+                closeDrawer()
+            },
+            onLogin = {
+                navigateTo(Route.Login.path)
+                closeDrawer()
+            },
+            onRegister = {
+                navigateTo(Route.Register.path)
+                closeDrawer()
+            }
+        )
+    }
 
     // Usar ModalNavigationDrawer para el drawer lateral
     ModalNavigationDrawer(
@@ -181,11 +226,18 @@ fun AppNavGraph(
                     )
                 }
                 composable(Route.HomeAdmin.path) {
+                    val context = LocalContext.current
+                    val database = AppDatabase.getInstance(context)
+                    val categoriaRepository = CategoriaRepository(database.categoriaDao())
+                    val categoriaViewModel: CategoriaViewModel = viewModel(
+                        factory = CategoriaViewModelFactory(categoriaRepository)
+                    )
                     HomeAdminScreen(
                         navController = navController,
                         usuarioViewModel = usuarioViewModel,
                         productoViewModel = productoViewModel,
-                        adminViewModel = adminViewModel
+                        adminViewModel = adminViewModel,
+                        categoriaViewModel = categoriaViewModel
                     )
                 }
                 composable("perfil") {

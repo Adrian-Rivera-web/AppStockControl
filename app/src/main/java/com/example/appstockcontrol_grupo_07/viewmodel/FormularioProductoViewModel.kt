@@ -7,16 +7,38 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
+import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository // ✅ NUEVO
 import com.example.appstockcontrol_grupo_07.model.Producto
 import com.example.appstockcontrol_grupo_07.validation.Validators
 import com.example.appstockcontrol_grupo_07.validation.ValidationResult
 
 class FormularioProductoViewModel(
-    private val productoRepository: ProductoRepository
+    private val productoRepository: ProductoRepository,
+    private val categoriaRepository: CategoriaRepository // ✅ NUEVO: Recibir el repositorio de categorías
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FormularioProductoState())
     val uiState: StateFlow<FormularioProductoState> = _uiState
+
+    // ✅ NUEVO: Lista de categorías existentes
+    private val _categoriasExistentes = MutableStateFlow<List<String>>(emptyList())
+    val categoriasExistentes: StateFlow<List<String>> = _categoriasExistentes
+
+    init {
+        cargarCategoriasExistentes() // ✅ Cargar categorías al iniciar
+    }
+
+    // ✅ NUEVO: Cargar categorías existentes
+    private fun cargarCategoriasExistentes() {
+        viewModelScope.launch {
+            categoriaRepository.obtenerCategorias().collect { categorias ->
+                _categoriasExistentes.value = categorias
+                    .filter { it.activa } // Solo categorías activas
+                    .map { it.nombre }
+                    .sorted()
+            }
+        }
+    }
 
     fun onNombreChange(nombre: String) {
         _uiState.update { it.copy(nombre = nombre, errores = it.errores.copy(nombre = null)) }
@@ -35,11 +57,32 @@ class FormularioProductoViewModel(
     }
 
     fun onCategoriaChange(categoria: String) {
-        _uiState.update { it.copy(categoria = categoria, errores = it.errores.copy(categoria = null)) }
+        _uiState.update {
+            it.copy(
+                categoria = categoria,
+                errores = it.errores.copy(categoria = null),
+                mostrarSugerencias = categoria.isNotEmpty() // ✅ Mostrar sugerencias cuando se escribe
+            )
+        }
     }
 
     fun onProveedorChange(proveedor: String) {
         _uiState.update { it.copy(proveedor = proveedor, errores = it.errores.copy(proveedor = null)) }
+    }
+
+    // ✅ NUEVO: Seleccionar categoría de las sugerencias
+    fun seleccionarCategoria(categoria: String) {
+        _uiState.update {
+            it.copy(
+                categoria = categoria,
+                mostrarSugerencias = false
+            )
+        }
+    }
+
+    // ✅ NUEVO: Ocultar sugerencias
+    fun ocultarSugerencias() {
+        _uiState.update { it.copy(mostrarSugerencias = false) }
     }
 
     fun cargarProducto(id: Int) {
@@ -129,8 +172,10 @@ class FormularioProductoViewModel(
                 is ValidationResult.Error -> result.message
                 else -> null
             },
-            categoria = when (val result = Validators.validateNonEmpty("Categoría", _uiState.value.categoria)) {
-                is ValidationResult.Error -> result.message
+            categoria = when {
+                _uiState.value.categoria.isBlank() -> "Categoría es requerida"
+                !_categoriasExistentes.value.any { it.equals(_uiState.value.categoria, ignoreCase = true) } ->
+                    "❌ Esta categoría no existe. Categorías válidas: ${_categoriasExistentes.value.joinToString(", ")}"
                 else -> null
             },
             proveedor = when (val result = Validators.validateNonEmpty("Proveedor", _uiState.value.proveedor)) {
@@ -163,7 +208,8 @@ data class FormularioProductoState(
     val proveedor: String = "",
     val cargando: Boolean = false,
     val error: String? = null,
-    val errores: FormularioProductoErrores = FormularioProductoErrores()
+    val errores: FormularioProductoErrores = FormularioProductoErrores(),
+    val mostrarSugerencias: Boolean = false // ✅ NUEVO: Controlar visibilidad de sugerencias
 )
 
 data class FormularioProductoErrores(
