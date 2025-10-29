@@ -65,6 +65,8 @@ dependencies {
     // Material icons (necesarios para Visibility / VisibilityOff)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.material3:material3:1.0.0")
+    implementation("androidx.compose.material3:material3:1.1.2")
+    implementation("androidx.compose.ui:ui:1.5.4")
 
     // Room (SQLite) - runtime y extensiones KTX
     implementation("androidx.room:room-runtime:2.6.1")    // <-- NUEVO

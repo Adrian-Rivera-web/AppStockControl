@@ -31,8 +31,8 @@ fun AppBottomBarV2(
     val homeRoute = if (isAdmin) "homeAdmin" else "home"
 
     val bottomNavItems = listOf(
-        BottomNavItem("Productos", Icons.Filled.ShoppingCart, "productos"),
-        BottomNavItem("Inicio", Icons.Filled.Home, homeRoute), // ✅ Ruta dinámica
+        BottomNavItem("Productos", Icons.Filled.ShoppingCart, "listaProductos"),
+        BottomNavItem("Inicio", Icons.Filled.Home, homeRoute),
         BottomNavItem("Perfil", Icons.Filled.Person, "perfil")
     )
 

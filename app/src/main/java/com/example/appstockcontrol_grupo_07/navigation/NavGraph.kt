@@ -11,10 +11,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.appstockcontrol_grupo_07.ui.components.AppBottomBarV2
 import com.example.appstockcontrol_grupo_07.ui.components.AppDrawer
 import com.example.appstockcontrol_grupo_07.ui.components.AppTopBar
@@ -25,6 +27,8 @@ import com.example.appstockcontrol_grupo_07.ui.screen.LoginScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.PerfilScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.RegistroScreen
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
+import com.example.appstockcontrol_grupo_07.viewmodel.ProductoViewModel
+import com.example.appstockcontrol_grupo_07.viewmodel.AdminViewModel
 import com.example.appstockcontrol_grupo_07.ui.screen.CategoriaScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.EntradasScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.Entradas_y_Salidas_ProductosScreen
@@ -34,7 +38,6 @@ import com.example.appstockcontrol_grupo_07.ui.screen.FormularioProveedoresScree
 import com.example.appstockcontrol_grupo_07.ui.screen.ListaCategoriaScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.ListaProductosScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.ListaProveedoresScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ProductosScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.ProveedoresScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.SalidasScreen
 import com.example.appstockcontrol_grupo_07.ui.screen.UsuarioScreen
@@ -42,7 +45,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
-    usuarioViewModel: UsuarioViewModel
+    usuarioViewModel: UsuarioViewModel,
+    productoViewModel: ProductoViewModel,
+    adminViewModel: AdminViewModel
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -192,7 +197,9 @@ fun AppNavGraph(
                 composable(Route.HomeAdmin.path) {
                     HomeAdminScreen(
                         navController = navController,
-                        usuarioViewModel = usuarioViewModel
+                        usuarioViewModel = usuarioViewModel,
+                        productoViewModel = productoViewModel,
+                        adminViewModel = adminViewModel
                         // ❌ Quitamos onHome, onLogin, onRegister - ya no son necesarios
                     )
                 }
@@ -203,14 +210,21 @@ fun AppNavGraph(
                         // ❌ Quitamos onHome - ya no es necesario
                     )
                 }
-                composable(Route.Productos.path) {
-                    ProductosScreen(navController)
-                }
                 composable(Route.ListaProductos.path) {
                     ListaProductosScreen(navController)
                 }
-                composable(Route.FormularioProducto.path) {
-                    FormularioProductoScreen(navController)
+
+                composable(
+                    route = "${Route.FormularioProducto.path}?productoId={productoId}",
+                    arguments = listOf(
+                        navArgument("productoId") {
+                            type = NavType.StringType
+                            defaultValue = "0"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val productoId = backStackEntry.arguments?.getString("productoId")
+                    FormularioProductoScreen(navController, productoId)
                 }
                 composable(Route.Categoria.path) {
                     CategoriaScreen(navController)
