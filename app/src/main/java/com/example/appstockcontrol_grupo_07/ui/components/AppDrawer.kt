@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
@@ -44,7 +46,6 @@ fun AppDrawer(
     }
 }
 
-// ✅ NUEVA función para ítems del drawer de administrador
 @Composable
 fun adminDrawerItems(
     onHome: () -> Unit,
@@ -52,27 +53,43 @@ fun adminDrawerItems(
     onListaProductos: () -> Unit,
     onFormularioProducto: () -> Unit,
     onListaCategorias: () -> Unit,
-    onFormularioCategoria: () -> Unit
+    onFormularioCategoria: () -> Unit,
+    onListaProveedores: () -> Unit,
+    onFormularioProveedores: () -> Unit,
+    isAdmin: Boolean = true
 ): List<DrawerItem> = listOf(
     DrawerItem("Inicio", Icons.Filled.Home, onHome),
     DrawerItem("Lista Usuarios", Icons.Filled.Group, onListaUsuarios),
-    DrawerItem("Lista Productos", Icons.Filled.Inventory, onListaProductos),
+    DrawerItem("Lista Productos", Icons.Filled.Inventory) {
+        onListaProductos() // Esta función ahora debe manejar el parámetro esAdmin
+    },
     DrawerItem("Formulario Producto", Icons.Filled.Add, onFormularioProducto),
     DrawerItem("Lista Categorías", Icons.Filled.Category, onListaCategorias),
-    DrawerItem("Formulario Categoría", Icons.Filled.Add, onFormularioCategoria)
+    DrawerItem("Formulario Categoría", Icons.Filled.Add, onFormularioCategoria),
+    DrawerItem("Lista Proveedores", Icons.Filled.List, onListaProveedores),
+    DrawerItem("Formulario Proveedores", Icons.Filled.LocalShipping, onFormularioProveedores)
 )
 
-// ✅ Función para ítems del drawer de usuario normal
+
 @Composable
 fun userDrawerItems(
     onHome: () -> Unit,
-    onListaProductos: () -> Unit
+    onListaProductos: () -> Unit,
+    onPerfil: () -> Unit,
+    onListaCategorias: () -> Unit,
+    onListaProveedores: () -> Unit,
+    onEntradasSalidas: () -> Unit,
+    isAdmin: Boolean = false
 ): List<DrawerItem> = listOf(
     DrawerItem("Inicio", Icons.Filled.Home, onHome),
-    DrawerItem("Lista Productos", Icons.Filled.Inventory, onListaProductos)
+    DrawerItem("Perfil", Icons.Filled.Person, onPerfil),
+    DrawerItem("Lista Productos", Icons.Filled.Inventory) {
+        onListaProductos() // Esta función ahora debe manejar el parámetro esAdmin
+    },
+    DrawerItem("Categorías", Icons.Filled.Category, onListaCategorias),
+    DrawerItem("Proveedores", Icons.Filled.LocalShipping, onListaProveedores)
 )
 
-// ✅ Mantener la función original para cuando no hay usuario logueado
 @Composable
 fun defaultDrawerItems(
     onHome: () -> Unit,

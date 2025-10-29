@@ -52,7 +52,8 @@ import androidx.compose.foundation.layout.Spacer
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaProductosScreen(
-    navController: NavController
+    navController: NavController,
+    esAdmin: Boolean = true // Por defecto true, pero lo pasarás desde la navegación
 ) {
     val context = LocalContext.current
     val database = AppDatabase.getInstance(context)
@@ -71,12 +72,15 @@ fun ListaProductosScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate(Route.FormularioProducto.path)
+            // Solo mostrar FAB si es admin
+            if (esAdmin) {
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(Route.FormularioProducto.path)
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar producto")
                 }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar producto")
             }
         }
     ) { innerPadding ->
@@ -93,12 +97,17 @@ fun ListaProductosScreen(
             ) {
                 IconButton(
                     onClick = {
-                        navController.navigate(Route.HomeAdmin.path)
+                        // Navegar al home correspondiente según el rol
+                        if (esAdmin) {
+                            navController.navigate(Route.HomeAdmin.path)
+                        } else {
+                            navController.navigate(Route.Home.path) // Asumiendo que existe esta ruta
+                        }
                     }
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,
-                        contentDescription = "Volver al Home Admin"
+                        contentDescription = "Volver al Home"
                     )
                 }
                 Text(
@@ -110,17 +119,26 @@ fun ListaProductosScreen(
 
             Spacer(modifier = Modifier.padding(8.dp))
 
-            // Header
+            // Header con indicación del rol
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Lista de Productos",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = "Lista de Productos",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (!esAdmin) {
+                        Text(
+                            text = "Modo de solo lectura",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Text(
                     text = "${uiState.productos.size} productos",
                     style = MaterialTheme.typography.bodyMedium,
@@ -228,12 +246,18 @@ fun ListaProductosScreen(
                         ProductoCard(
                             producto = producto,
                             onProductoClick = {
-                                // Navegar a edición del producto
-                                navController.navigate("${Route.FormularioProducto.path}?productoId=${producto.id}")
+                                // Navegar a edición del producto si es admin, o a vista de detalle si es usuario normal
+                                if (esAdmin) {
+                                    navController.navigate("${Route.FormularioProducto.path}?productoId=${producto.id}")
+                                } else {
+                                    // Navegar a una pantalla de detalle de solo lectura
+                                    navController.navigate("${Route.FormularioProducto.path}?productoId=${producto.id}&soloLectura=true")
+                                }
                             },
                             onEliminarClick = {
                                 viewModel.eliminarProducto(producto.id)
-                            }
+                            },
+                            esAdmin = esAdmin // Pasar el rol a la tarjeta
                         )
                     }
                 }
@@ -247,11 +271,13 @@ fun ListaProductosScreen(
 fun ProductoCard(
     producto: com.example.appstockcontrol_grupo_07.model.Producto,
     onProductoClick: () -> Unit,
-    onEliminarClick: () -> Unit
+    onEliminarClick: () -> Unit,
+    esAdmin: Boolean // Nuevo parámetro para controlar visibilidad
 ) {
     Card(
         onClick = onProductoClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -272,7 +298,7 @@ fun ProductoCard(
                     text = producto.descripcion,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    maxLines = 2
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -286,9 +312,11 @@ fun ProductoCard(
                     Text(
                         text = "Stock: ${producto.stock}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (producto.stock > 10) MaterialTheme.colorScheme.primary
-                        else if (producto.stock > 0) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.error
+                        color = when {
+                            producto.stock > 10 -> MaterialTheme.colorScheme.primary
+                            producto.stock > 0 -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.error
+                        }
                     )
                 }
             }
@@ -302,14 +330,21 @@ fun ProductoCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                IconButton(
-                    onClick = onEliminarClick
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar producto",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+
+                // Solo mostrar botón de eliminar si es admin
+                if (esAdmin) {
+                    IconButton(
+                        onClick = onEliminarClick
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Eliminar producto",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    // Espacio para mantener la alineación cuando no hay botón
+                    Spacer(modifier = Modifier.size(48.dp))
                 }
             }
         }

@@ -50,7 +50,7 @@ fun FormularioProductoScreen(
     val context = LocalContext.current
     val database = AppDatabase.getInstance(context)
 
-    // ✅ CORREGIDO: Ambos repositorios necesarios
+
     val productoRepository = ProductoRepository(database.productoDao())
     val categoriaRepository = CategoriaRepository(database.categoriaDao())
 
@@ -170,7 +170,6 @@ fun FormularioProductoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ CAMPO CATEGORÍA MEJORADO - Con validación y sugerencias
             Box(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -194,7 +193,7 @@ fun FormularioProductoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ INFORMACIÓN DE CATEGORÍAS DISPONIBLES
+
             if (categoriasExistentes.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

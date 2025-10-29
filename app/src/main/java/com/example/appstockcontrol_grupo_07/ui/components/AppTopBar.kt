@@ -21,8 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun AppTopBar(
     onOpenDrawer: () -> Unit,
-    onSettings: () -> Unit = {}, // ✅ Nueva función para Configuración
-    onLogout: () -> Unit = {}    // ✅ Nueva función para Cerrar Sesión
+    onSettings: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -32,7 +32,7 @@ fun AppTopBar(
         ),
         title = {
             Text(
-                text = "StockControl", // ✅ Cambiado el título
+                text = "StockControl",
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -44,7 +44,7 @@ fun AppTopBar(
             }
         },
         actions = {
-            // ✅ Eliminados los botones de Home, Login y Registro
+
             IconButton(onClick = { showMenu = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = "Más opciones")
             }
@@ -52,7 +52,6 @@ fun AppTopBar(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
-                // ✅ Solo Configuración y Cerrar Sesión
                 DropdownMenuItem(
                     text = { Text("Configuración") },
                     onClick = {

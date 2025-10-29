@@ -11,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel  // ✅ AÑADIR ESTA IMPORTACIÓN
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import com.example.appstockcontrol_grupo_07.ui.components.adminDrawerItems
@@ -24,13 +24,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
 import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
+import com.example.appstockcontrol_grupo_07.data.repository.ProveedorRepository
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
 import com.example.appstockcontrol_grupo_07.ui.components.AppBottomBarV2
 import com.example.appstockcontrol_grupo_07.ui.components.AppDrawer
 import com.example.appstockcontrol_grupo_07.ui.components.AppTopBar
 import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
 import com.example.appstockcontrol_grupo_07.ui.screen.*
-import com.example.appstockcontrol_grupo_07.viewmodel.*  // ✅ ESTA DEBERÍA INCLUIR TODOS LOS VIEWMODELS
+import com.example.appstockcontrol_grupo_07.viewmodel.*
 import kotlinx.coroutines.launch
 import com.example.appstockcontrol_grupo_07.viewmodel.CategoriaViewModel
 
@@ -121,6 +122,14 @@ fun AppNavGraph(
                 onFormularioCategoria = {
                     navigateTo(Route.FormularioCategoria.path)
                     closeDrawer()
+                },
+                onListaProveedores = {
+                    navigateTo(Route.ListaProveedores.path)
+                    closeDrawer()
+                },
+                onFormularioProveedores = {
+                    navigateTo(Route.FormularioProveedores.path)
+                    closeDrawer()
                 }
             )
         } else {
@@ -131,6 +140,22 @@ fun AppNavGraph(
                 },
                 onListaProductos = {
                     navigateTo(Route.ListaProductos.path)
+                    closeDrawer()
+                },
+                onPerfil = {
+                    navigateTo("perfil") // Asegúrate de que la ruta para perfil esté definida en Route o sea la correcta
+                    closeDrawer()
+                },
+                onListaCategorias = {
+                    navigateTo(Route.ListaCategoria.path)
+                    closeDrawer()
+                },
+                onListaProveedores = {
+                    navigateTo(Route.ListaProveedores.path)
+                    closeDrawer()
+                },
+                onEntradasSalidas = {
+                    navigateTo(Route.Entradas_y_Salidas_Productos.path)
                     closeDrawer()
                 }
             )
@@ -220,24 +245,48 @@ fun AppNavGraph(
                     RegistroScreen(navController)
                 }
                 composable(Route.Home.path) {
+
+                    val context = LocalContext.current
+                    val database = AppDatabase.getInstance(context)
+
+                    // Repositorios
+                    val categoriaRepository = CategoriaRepository(database.categoriaDao())
+                    val proveedorRepository = ProveedorRepository(database.proveedorDao())
+
+                    // ViewModels
+                    val categoriaViewModel: CategoriaViewModel = viewModel(
+                        factory = CategoriaViewModelFactory(categoriaRepository)
+                    )
+                    val proveedorViewModel: ProveedorViewModel = viewModel(
+                        factory = ProveedorViewModelFactory(proveedorRepository)
+                    )
+
                     HomeScreen(
                         navController = navController,
-                        usuarioViewModel = usuarioViewModel
+                        usuarioViewModel = usuarioViewModel,
+                        productoViewModel = productoViewModel,
+                        categoriaViewModel = categoriaViewModel,
+                        proveedorViewModel = proveedorViewModel
                     )
                 }
                 composable(Route.HomeAdmin.path) {
                     val context = LocalContext.current
                     val database = AppDatabase.getInstance(context)
                     val categoriaRepository = CategoriaRepository(database.categoriaDao())
+                    val proveedorRepository = ProveedorRepository(database.proveedorDao())
                     val categoriaViewModel: CategoriaViewModel = viewModel(
                         factory = CategoriaViewModelFactory(categoriaRepository)
+                    )
+                    val proveedorViewModel: ProveedorViewModel = viewModel(
+                        factory = ProveedorViewModelFactory(proveedorRepository)
                     )
                     HomeAdminScreen(
                         navController = navController,
                         usuarioViewModel = usuarioViewModel,
                         productoViewModel = productoViewModel,
                         adminViewModel = adminViewModel,
-                        categoriaViewModel = categoriaViewModel
+                        categoriaViewModel = categoriaViewModel,
+                        proveedorViewModel = proveedorViewModel
                     )
                 }
                 composable("perfil") {
@@ -247,9 +296,21 @@ fun AppNavGraph(
                     )
                 }
 
-                // ✅ PRODUCTOS
-                composable(Route.ListaProductos.path) {
-                    ListaProductosScreen(navController)
+                composable(
+                    "listaProductos?esAdmin={esAdmin}",
+                    arguments = listOf(
+                        navArgument("esAdmin") {
+                            type = NavType.BoolType
+                            defaultValue = true
+                        }
+                    )
+                ) { backStackEntry ->
+                    val esAdmin = backStackEntry.arguments?.getBoolean("esAdmin") ?: true
+
+                    ListaProductosScreen(
+                        navController = navController,
+                        esAdmin = esAdmin
+                    )
                 }
 
                 composable(
@@ -265,7 +326,6 @@ fun AppNavGraph(
                     FormularioProductoScreen(navController, productoId)
                 }
 
-                // ✅ CATEGORÍAS - CORREGIDO
                 composable(Route.ListaCategoria.path) {
                     val context = LocalContext.current
                     val database = AppDatabase.getInstance(context)
@@ -303,19 +363,6 @@ fun AppNavGraph(
                 }
                 composable(Route.Categoria.path) {
                     // CategoriaScreen si existe
-                }
-
-                composable(Route.Entradas_y_Salidas_Productos.path) {
-                    Entradas_y_Salidas_ProductosScreen(navController)
-                }
-                composable(Route.Entradas.path) {
-                    EntradasScreen(navController)
-                }
-                composable(Route.Salidas.path) {
-                    SalidasScreen(navController)
-                }
-                composable(Route.Proveedores.path) {
-                    ProveedoresScreen(navController)
                 }
                 composable(Route.FormularioProveedores.path) {
                     FormularioProveedoresScreen(navController)

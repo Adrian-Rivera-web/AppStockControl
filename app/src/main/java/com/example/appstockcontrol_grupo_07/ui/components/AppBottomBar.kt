@@ -23,7 +23,7 @@ data class BottomNavItem(
 fun AppBottomBarV2(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
-    isAdmin: Boolean, // ✅ Recibir estado de admin
+    isAdmin: Boolean,
     onProfile: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -31,7 +31,7 @@ fun AppBottomBarV2(
     val homeRoute = if (isAdmin) "homeAdmin" else "home"
 
     val bottomNavItems = listOf(
-        BottomNavItem("Productos", Icons.Filled.ShoppingCart, "listaProductos"),
+        BottomNavItem("Productos", Icons.Filled.ShoppingCart, "listaProductos?esAdmin=$isAdmin"),
         BottomNavItem("Inicio", Icons.Filled.Home, homeRoute),
         BottomNavItem("Perfil", Icons.Filled.Person, "perfil")
     )

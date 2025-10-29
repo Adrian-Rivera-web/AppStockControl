@@ -10,5 +10,5 @@ data class CategoriaEntity(
     val nombre: String,
     val descripcion: String,
     val fechaCreacion: Long,
-    val activa: Int // 1 para true, 0 para false
+    val activa: Int
 )
