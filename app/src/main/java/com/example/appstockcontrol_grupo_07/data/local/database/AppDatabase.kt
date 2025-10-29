@@ -4,30 +4,38 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.appstockcontrol_grupo_07.data.local.user.UserDao
 import com.example.appstockcontrol_grupo_07.data.local.user.UserEntity
 import com.example.appstockcontrol_grupo_07.data.local.producto.ProductoDao
 import com.example.appstockcontrol_grupo_07.data.local.producto.ProductoEntity
+import com.example.appstockcontrol_grupo_07.data.local.categoria.CategoriaDao
+import com.example.appstockcontrol_grupo_07.data.local.categoria.CategoriaEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first // ✅ AGREGAR ESTE IMPORT
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [UserEntity::class, ProductoEntity::class],
-    version = 4,
+    entities = [
+        UserEntity::class,
+        ProductoEntity::class,
+        CategoriaEntity::class  // Agregar la entidad Categoria
+    ],
+    version = 5,  // Incrementar versión porque agregamos nueva tabla
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun productoDao(): ProductoDao
+    abstract fun categoriaDao(): CategoriaDao  // Agregar el DAO de Categoria
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        private const val DB_NAME = "ui_navegacion_v4.db"
+        private const val DB_NAME = "ui_navegacion_v5.db"  // Incrementar versión
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -53,6 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
+                    .addMigrations(MIGRATION_4_5)  // Agregar migración
                     .fallbackToDestructiveMigration()
                     .build()
 
@@ -62,17 +71,50 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migración de versión 4 a 5 - agregar tabla categorias
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE categorias (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        nombre TEXT NOT NULL,
+                        descripcion TEXT NOT NULL,
+                        fecha_creacion INTEGER NOT NULL,
+                        activa INTEGER NOT NULL
+                    )
+                    """
+                )
+
+                // Insertar algunas categorías por defecto
+                database.execSQL(
+                    """
+                    INSERT INTO categorias (nombre, descripcion, fecha_creacion, activa) 
+                    VALUES 
+                    ('Electrónicos', 'Productos electrónicos y dispositivos', ${System.currentTimeMillis()}, 1),
+                    ('Ropa', 'Prendas de vestir y accesorios', ${System.currentTimeMillis()}, 1),
+                    ('Hogar', 'Artículos para el hogar', ${System.currentTimeMillis()}, 1),
+                    ('Deportes', 'Equipos y artículos deportivos', ${System.currentTimeMillis()}, 1),
+                    ('Alimentos', 'Productos alimenticios y bebidas', ${System.currentTimeMillis()}, 1),
+                    ('Libros', 'Libros y material educativo', ${System.currentTimeMillis()}, 1)
+                    """
+                )
+            }
+        }
+
         private suspend fun initializeData(database: AppDatabase) {
             try {
                 val userDao = database.userDao()
                 val productoDao = database.productoDao()
+                val categoriaDao = database.categoriaDao()  // Agregar categoriaDao
 
                 println("DEBUG: AppDatabase - DAOs obtenidos")
 
                 val userCount = userDao.count()
                 val productoCount = productoDao.count()
+                val categoriaCount = categoriaDao.count()
 
-                println("DEBUG: AppDatabase - Conteo inicial - Usuarios: $userCount, Productos: $productoCount")
+                println("DEBUG: AppDatabase - Conteo inicial - Usuarios: $userCount, Productos: $productoCount, Categorías: $categoriaCount")
 
                 // Inicializar usuarios si no existen
                 if (userCount == 0) {
@@ -182,14 +224,21 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // ✅ VERIFICACIÓN CORREGIDA - Usar .first() para obtener la lista del Flow
                 val allUsers = userDao.getAll()
-                val allProductos = productoDao.getAll().first() // ✅ CORREGIDO: .first() para obtener la lista
+                val allProductos = productoDao.getAll().first()
+                val allCategorias = categoriaDao.obtenerTodas().first()  // Agregar categorías
 
                 println("DEBUG: AppDatabase - Verificación - Total usuarios: ${allUsers.size}")
                 println("DEBUG: AppDatabase - Verificación - Total productos: ${allProductos.size}")
+                println("DEBUG: AppDatabase - Verificación - Total categorías: ${allCategorias.size}")
 
                 // ✅ CORREGIDO: Ahora allProductos es List<ProductoEntity>, podemos usar forEach
                 allProductos.forEach { producto ->
                     println("DEBUG: AppDatabase - Producto: ${producto.nombre} | Precio: $${producto.precio} | Stock: ${producto.stock}")
+                }
+
+                // Mostrar categorías
+                allCategorias.forEach { categoria ->
+                    println("DEBUG: AppDatabase - Categoría: ${categoria.nombre} | Descripción: ${categoria.descripcion}")
                 }
 
             } catch (e: Exception) {

@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel  // ✅ AÑADIR ESTA IMPORTACIÓN
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,37 +19,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
+import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
+import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
 import com.example.appstockcontrol_grupo_07.ui.components.AppBottomBarV2
 import com.example.appstockcontrol_grupo_07.ui.components.AppDrawer
 import com.example.appstockcontrol_grupo_07.ui.components.AppTopBar
 import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
-import com.example.appstockcontrol_grupo_07.ui.screen.HomeScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.HomeAdminScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.LoginScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.PerfilScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.RegistroScreen
-import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
-import com.example.appstockcontrol_grupo_07.viewmodel.ProductoViewModel
-import com.example.appstockcontrol_grupo_07.viewmodel.AdminViewModel
-import com.example.appstockcontrol_grupo_07.ui.screen.CategoriaScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.EntradasScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.Entradas_y_Salidas_ProductosScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.FormularioCategoriaScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.FormularioProductoScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.FormularioProveedoresScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ListaCategoriaScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ListaProductosScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ListaProveedoresScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.ProveedoresScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.SalidasScreen
-import com.example.appstockcontrol_grupo_07.ui.screen.UsuarioScreen
+import com.example.appstockcontrol_grupo_07.ui.screen.*
+import com.example.appstockcontrol_grupo_07.viewmodel.*  // ✅ ESTA DEBERÍA INCLUIR TODOS LOS VIEWMODELS
 import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
     usuarioViewModel: UsuarioViewModel,
     productoViewModel: ProductoViewModel,
-    adminViewModel: AdminViewModel
+    adminViewModel: AdminViewModel,
+    categoriaViewModelFactory: CategoriaViewModelFactory,
+    formularioCategoriaViewModelFactory: FormularioCategoriaViewModelFactory
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -121,7 +110,7 @@ fun AppNavGraph(
     // Usar ModalNavigationDrawer para el drawer lateral
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = mostrarBottomBar, // Solo permitir gestos donde hay bottom bar
+        gesturesEnabled = mostrarBottomBar,
         drawerContent = {
             AppDrawer(
                 currentRoute = currentRoute,
@@ -136,8 +125,6 @@ fun AppNavGraph(
                     AppTopBar(
                         onOpenDrawer = openDrawer,
                         onSettings = {
-                            // ✅ Navegar a pantalla de configuración (puedes crear esta pantalla después)
-                            // Por ahora puedes dejarlo vacío o navegar a un placeholder
                             println("Navegar a pantalla de configuración")
                         },
                         onLogout = {
@@ -158,7 +145,7 @@ fun AppNavGraph(
                     AppBottomBarV2(
                         currentRoute = currentRoute,
                         onNavigate = navigateTo,
-                        isAdmin = esAdmin, // ✅ Pasar el estado de admin
+                        isAdmin = esAdmin,
                         onProfile = {
                             navigateTo("perfil")
                         },
@@ -178,7 +165,7 @@ fun AppNavGraph(
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = startDestination, // ✅ Start dinámico
+                startDestination = startDestination,
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable(Route.Login.path) {
@@ -191,7 +178,6 @@ fun AppNavGraph(
                     HomeScreen(
                         navController = navController,
                         usuarioViewModel = usuarioViewModel
-                        // ❌ Quitamos onHome, onLogin, onRegister - ya no son necesarios
                     )
                 }
                 composable(Route.HomeAdmin.path) {
@@ -200,16 +186,16 @@ fun AppNavGraph(
                         usuarioViewModel = usuarioViewModel,
                         productoViewModel = productoViewModel,
                         adminViewModel = adminViewModel
-                        // ❌ Quitamos onHome, onLogin, onRegister - ya no son necesarios
                     )
                 }
                 composable("perfil") {
                     PerfilScreen(
                         navController = navController,
                         usuarioViewModel = usuarioViewModel
-                        // ❌ Quitamos onHome - ya no es necesario
                     )
                 }
+
+                // ✅ PRODUCTOS
                 composable(Route.ListaProductos.path) {
                     ListaProductosScreen(navController)
                 }
@@ -226,15 +212,47 @@ fun AppNavGraph(
                     val productoId = backStackEntry.arguments?.getString("productoId")
                     FormularioProductoScreen(navController, productoId)
                 }
-                composable(Route.Categoria.path) {
-                    CategoriaScreen(navController)
-                }
+
+                // ✅ CATEGORÍAS - CORREGIDO
                 composable(Route.ListaCategoria.path) {
-                    ListaCategoriaScreen(navController)
+                    val context = LocalContext.current
+                    val database = AppDatabase.getInstance(context)
+                    val categoriaRepository = CategoriaRepository(database.categoriaDao())
+                    val categoriaViewModel: CategoriaViewModel = viewModel(
+                        factory = CategoriaViewModelFactory(categoriaRepository)
+                    )
+                    ListaCategoriasScreen(
+                        navController = navController,
+                        categoriaViewModel = categoriaViewModel
+                    )
                 }
-                composable(Route.FormularioCategoria.path) {
-                    FormularioCategoriaScreen(navController)
+
+                composable(
+                    route = "${Route.FormularioCategoria.path}?categoriaId={categoriaId}",
+                    arguments = listOf(
+                        navArgument("categoriaId") {
+                            type = NavType.StringType
+                            defaultValue = "0"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val context = LocalContext.current
+                    val database = AppDatabase.getInstance(context)
+                    val categoriaRepository = CategoriaRepository(database.categoriaDao())
+                    val formularioCategoriaViewModel: FormularioCategoriaViewModel = viewModel(
+                        factory = FormularioCategoriaViewModelFactory(categoriaRepository)
+                    )
+                    val categoriaId = backStackEntry.arguments?.getString("categoriaId")
+                    FormularioCategoriaScreen(
+                        navController = navController,
+                        categoriaId = categoriaId,
+                        viewModel = formularioCategoriaViewModel
+                    )
                 }
+                composable(Route.Categoria.path) {
+                    // CategoriaScreen si existe
+                }
+
                 composable(Route.Entradas_y_Salidas_Productos.path) {
                     Entradas_y_Salidas_ProductosScreen(navController)
                 }
@@ -256,6 +274,7 @@ fun AppNavGraph(
                 composable(Route.Usuario.path) {
                     UsuarioScreen(navController, usuarioViewModel)
                 }
+
             }
         }
     }

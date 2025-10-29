@@ -11,12 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.appstockcontrol_grupo_07.navigation.Route
-
+import com.example.appstockcontrol_grupo_07.viewmodel.CategoriaViewModel
 
 
 @Composable
 fun CategoriaScreen(
-    navController: NavController
+    navController: NavController,
+    categoriaViewModel: CategoriaViewModel
 ) {
 
     Column(Modifier.padding(all = 16.dp)) {

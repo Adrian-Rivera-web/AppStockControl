@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Category // ✅ NUEVO ICONO PARA CATEGORÍAS
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -187,7 +188,7 @@ fun HomeAdminScreen(
 
         Spacer(modifier = Modifier.padding(8.dp))
 
-        // ✅ BOTÓN PARA ADMINISTRAR USUARIOS (se mantiene como alternativa)
+        // ✅ BOTÓN PARA ADMINISTRAR USUARIOS
         Button(
             onClick = {
                 println("DEBUG: HomeAdminScreen - Navegando a UsuarioScreen")
@@ -203,6 +204,24 @@ fun HomeAdminScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Administrar Usuarios")
+        }
+
+        // ✅ NUEVO BOTÓN PARA ADMINISTRAR CATEGORÍAS
+        Button(
+            onClick = {
+                println("DEBUG: HomeAdminScreen - Navegando a ListaCategorias")
+                navController.navigate(Route.ListaCategoria.path)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Category, // ✅ Icono de categorías
+                contentDescription = "Categorías"
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Administrar Categorías")
         }
     }
 }

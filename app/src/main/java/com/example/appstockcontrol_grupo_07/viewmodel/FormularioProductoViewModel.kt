@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
 import com.example.appstockcontrol_grupo_07.model.Producto
+import com.example.appstockcontrol_grupo_07.validation.Validators
+import com.example.appstockcontrol_grupo_07.validation.ValidationResult
 
 class FormularioProductoViewModel(
     private val productoRepository: ProductoRepository
@@ -111,24 +113,30 @@ class FormularioProductoViewModel(
 
     private fun validarFormulario(): Boolean {
         val errores = FormularioProductoErrores(
-            nombre = if (_uiState.value.nombre.isBlank()) "Nombre es requerido" else null,
-            descripcion = if (_uiState.value.descripcion.isBlank()) "Descripción es requerida" else null,
-            precio = try {
-                if (_uiState.value.precio.isBlank()) "Precio es requerido"
-                else if (_uiState.value.precio.toDouble() <= 0) "Precio debe ser mayor a 0"
-                else null
-            } catch (e: NumberFormatException) {
-                "Precio debe ser un número válido"
+            nombre = when (val result = Validators.validateNonEmpty("Nombre", _uiState.value.nombre)) {
+                is ValidationResult.Error -> result.message
+                else -> null
             },
-            stock = try {
-                if (_uiState.value.stock.isBlank()) "Stock es requerido"
-                else if (_uiState.value.stock.toInt() < 0) "Stock no puede ser negativo"
-                else null
-            } catch (e: NumberFormatException) {
-                "Stock debe ser un número válido"
+            descripcion = when (val result = Validators.validateNonEmpty("Descripción", _uiState.value.descripcion)) {
+                is ValidationResult.Error -> result.message
+                else -> null
             },
-            categoria = if (_uiState.value.categoria.isBlank()) "Categoría es requerida" else null,
-            proveedor = if (_uiState.value.proveedor.isBlank()) "Proveedor es requerido" else null
+            precio = when (val result = Validators.validatePrice(_uiState.value.precio)) {
+                is ValidationResult.Error -> result.message
+                else -> null
+            },
+            stock = when (val result = Validators.validateStock(_uiState.value.stock)) {
+                is ValidationResult.Error -> result.message
+                else -> null
+            },
+            categoria = when (val result = Validators.validateNonEmpty("Categoría", _uiState.value.categoria)) {
+                is ValidationResult.Error -> result.message
+                else -> null
+            },
+            proveedor = when (val result = Validators.validateNonEmpty("Proveedor", _uiState.value.proveedor)) {
+                is ValidationResult.Error -> result.message
+                else -> null
+            }
         )
 
         _uiState.update { it.copy(errores = errores) }

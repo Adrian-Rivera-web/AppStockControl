@@ -70,6 +70,67 @@ object Validators {
             else -> ValidationResult.Success
         }
     }
+    fun validateNonEmpty(fieldName: String, value: String): ValidationResult {
+        return if (value.isBlank()) {
+            ValidationResult.Error("$fieldName es requerido")
+        } else {
+            ValidationResult.Success
+        }
+    }
+
+    // Validar precio
+    fun validatePrice(price: String): ValidationResult {
+        return try {
+            if (price.isBlank()) {
+                ValidationResult.Error("Precio es requerido")
+            } else {
+                val priceValue = price.toDouble()
+                if (priceValue <= 0) {
+                    ValidationResult.Error("Precio debe ser mayor a 0")
+                } else {
+                    ValidationResult.Success
+                }
+            }
+        } catch (e: NumberFormatException) {
+            ValidationResult.Error("Precio debe ser un número válido")
+        }
+    }
+
+    // Validar stock
+    fun validateStock(stock: String): ValidationResult {
+        return try {
+            if (stock.isBlank()) {
+                ValidationResult.Error("Stock es requerido")
+            } else {
+                val stockValue = stock.toInt()
+                if (stockValue < 0) {
+                    ValidationResult.Error("Stock no puede ser negativo")
+                } else {
+                    ValidationResult.Success
+                }
+            }
+        } catch (e: NumberFormatException) {
+            ValidationResult.Error("Stock debe ser un número válido")
+        }
+    }
+
+    // Validar longitud mínima
+    fun validateMinLength(fieldName: String, value: String, minLength: Int): ValidationResult {
+        return if (value.length < minLength) {
+            ValidationResult.Error("$fieldName debe tener al menos $minLength caracteres")
+        } else {
+            ValidationResult.Success
+        }
+    }
+
+    // Validar longitud máxima
+    fun validateMaxLength(fieldName: String, value: String, maxLength: Int): ValidationResult {
+        return if (value.length > maxLength) {
+            ValidationResult.Error("$fieldName no puede exceder $maxLength caracteres")
+        } else {
+            ValidationResult.Success
+        }
+    }
 }
 
 sealed class ValidationResult {
