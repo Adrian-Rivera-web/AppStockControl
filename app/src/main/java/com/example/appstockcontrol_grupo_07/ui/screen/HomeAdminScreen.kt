@@ -89,7 +89,7 @@ fun HomeAdminScreen(
         Row(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // CAJITA DE PRODUCTOS (CLICKEABLE)
+            //  PRODUCTOS (CLICKEABLE)
             Card(
                 modifier = Modifier
                     .weight(1f)
