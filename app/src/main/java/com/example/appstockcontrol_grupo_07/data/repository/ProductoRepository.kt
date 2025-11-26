@@ -48,8 +48,12 @@ private fun com.example.appstockcontrol_grupo_07.data.local.producto.ProductoEnt
         descripcion = this.descripcion,
         precio = this.precio,
         stock = this.stock,
+        stockMinimo = this.stockMinimo,
         categoria = this.categoria,
-        proveedor = this.proveedor
+        proveedor = this.proveedor,
+        fechaCreacion = this.fechaCreacion,
+        fechaActualizacion = this.fechaActualizacion,
+        imagenUri = this.imagenUri
     )
 
 private fun Producto.toEntity(): com.example.appstockcontrol_grupo_07.data.local.producto.ProductoEntity =
@@ -59,6 +63,10 @@ private fun Producto.toEntity(): com.example.appstockcontrol_grupo_07.data.local
         descripcion = this.descripcion,
         precio = this.precio,
         stock = this.stock,
+        stockMinimo = this.stockMinimo,
         categoria = this.categoria,
-        proveedor = this.proveedor
+        proveedor = this.proveedor,
+        fechaCreacion = this.fechaCreacion,
+        fechaActualizacion = this.fechaActualizacion,
+        imagenUri = this.imagenUri
     )

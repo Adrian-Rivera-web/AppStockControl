@@ -19,6 +19,9 @@ import com.example.appstockcontrol_grupo_07.data.repository.ProveedorRepository
 import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.ProveedorViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.ProveedorViewModelFactory
+import com.example.appstockcontrol_grupo_07.model.Proveedor
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +37,8 @@ fun ListaProveedoresScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var proveedorAEliminar by remember { mutableStateOf<Proveedor?>(null) }
+    var mostrarDialogoEliminarProveedor by remember { mutableStateOf(false) }
 
     // Efecto para buscar cuando cambia el query
     LaunchedEffect(searchQuery) {
@@ -199,14 +204,57 @@ fun ListaProveedoresScreen(
                         ProveedorCard(
                             proveedor = proveedor,
                             onProveedorClick = {
+                                // Navegar a edición, si lo tienes
                                 navController.navigate("${Route.FormularioProveedores.path}?proveedorId=${proveedor.id}")
                             },
                             onEliminarClick = {
-                                viewModel.eliminarProveedor(proveedor.id)
+                                // 👇 en vez de eliminar de inmediato, abrimos el diálogo
+                                proveedorAEliminar = proveedor
+                                mostrarDialogoEliminarProveedor = true
                             }
                         )
                     }
                 }
+            }
+            if (mostrarDialogoEliminarProveedor && proveedorAEliminar != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        mostrarDialogoEliminarProveedor = false
+                        proveedorAEliminar = null
+                    },
+                    title = {
+                        Text("Eliminar proveedor")
+                    },
+                    text = {
+                        Text(
+                            "¿Seguro que deseas eliminar el proveedor \"${proveedorAEliminar?.nombre}\"? " +
+                                    "Esta acción no se puede deshacer."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                proveedorAEliminar?.id?.let { id ->
+                                    viewModel.eliminarProveedor(id)
+                                }
+                                mostrarDialogoEliminarProveedor = false
+                                proveedorAEliminar = null
+                            }
+                        ) {
+                            Text("Eliminar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                mostrarDialogoEliminarProveedor = false
+                                proveedorAEliminar = null
+                            }
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
             }
         }
     }

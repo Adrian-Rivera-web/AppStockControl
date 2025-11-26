@@ -7,8 +7,10 @@ data class Producto(
     val descripcion: String,
     val precio: Double,
     val stock: Int,
+    val stockMinimo: Int = 0,
     val categoria: String,
     val proveedor: String,
     val fechaCreacion: String = "",
-    val fechaActualizacion: String = ""
+    val fechaActualizacion: String = "",
+    val imagenUri: String? = null
 )

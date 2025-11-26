@@ -22,11 +22,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.appstockcontrol_grupo_07.navigation.Route
 import androidx.navigation.NavController
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.ProductoViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.CategoriaViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.ProveedorViewModel
+import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.height
 
 @Composable
 fun HomeScreen(
@@ -60,9 +63,34 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.padding(8.dp))
 
+        // 🔹 Acciones principales para el usuario
+        Button(
+            onClick = {
+                // Lista de productos en modo usuario (esAdmin = false)
+                navController.navigate("listaProductos?esAdmin=false")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ver lista de productos")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                // Solo si quieres que el usuario vea movimientos
+                navController.navigate(Route.Entradas_y_Salidas_Productos.path)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Movimientos de inventario")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // ✅ CUADROS DE ESTADÍSTICAS (NO CLICKEABLES)
         Text(
-            text = "Resumen General",
+            text = "Resumen general",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )

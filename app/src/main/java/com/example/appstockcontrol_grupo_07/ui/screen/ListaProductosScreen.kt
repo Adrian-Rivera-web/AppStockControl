@@ -48,6 +48,8 @@ import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.ListaProductosViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.ListaProductosViewModelFactory
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +66,9 @@ fun ListaProductosScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var productoAEliminar by remember { mutableStateOf<com.example.appstockcontrol_grupo_07.model.Producto?>(null) }
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+
 
     // Efecto para buscar cuando cambia el query
     LaunchedEffect(searchQuery) {
@@ -246,22 +251,63 @@ fun ListaProductosScreen(
                         ProductoCard(
                             producto = producto,
                             onProductoClick = {
-                                // Navegar a edición del producto si es admin, o a vista de detalle si es usuario normal
                                 if (esAdmin) {
                                     navController.navigate("${Route.FormularioProducto.path}?productoId=${producto.id}")
                                 } else {
-                                    // Navegar a una pantalla de detalle de solo lectura
-                                    navController.navigate("${Route.FormularioProducto.path}?productoId=${producto.id}&soloLectura=true")
+                                    navController.navigate("${Route.DetalleProducto.path}?productoId=${producto.id}")
                                 }
                             },
+
                             onEliminarClick = {
-                                viewModel.eliminarProducto(producto.id)
+                                productoAEliminar = producto           // ⬅️ guardamos cuál
+                                mostrarDialogoEliminar = true          // ⬅️ mostramos diálogo
                             },
-                            esAdmin = esAdmin // Pasar el rol a la tarjeta
+                            esAdmin = esAdmin
                         )
                     }
                 }
             }
+            if (mostrarDialogoEliminar && productoAEliminar != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        mostrarDialogoEliminar = false
+                        productoAEliminar = null
+                    },
+                    title = {
+                        Text("Eliminar producto")
+                    },
+                    text = {
+                        Text(
+                            "¿Seguro que deseas eliminar el producto \"${productoAEliminar?.nombre}\"? " +
+                                    "Esta acción no se puede deshacer."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                productoAEliminar?.let { prod ->
+                                    viewModel.eliminarProducto(prod.id)
+                                }
+                                mostrarDialogoEliminar = false
+                                productoAEliminar = null
+                            }
+                        ) {
+                            Text("Eliminar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                mostrarDialogoEliminar = false
+                                productoAEliminar = null
+                            }
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            }
+
         }
     }
 }
@@ -274,10 +320,23 @@ fun ProductoCard(
     onEliminarClick: () -> Unit,
     esAdmin: Boolean // Nuevo parámetro para controlar visibilidad
 ) {
+    val sinStock = producto.stock <= 0
+    val esBajoStock = producto.stockMinimo > 0 && producto.stock <= producto.stockMinimo
+
     Card(
         onClick = onProductoClick,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                sinStock ->
+                    MaterialTheme.colorScheme.error          // 🔴 rojo fuerte (sin stock)
+                esBajoStock ->
+                    MaterialTheme.colorScheme.errorContainer // 🧡 naranjo (bajo mínimo)
+                else ->
+                    MaterialTheme.colorScheme.surface
+            }
+        )
     ) {
         Row(
             modifier = Modifier
@@ -310,17 +369,31 @@ fun ProductoCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Stock: ${producto.stock}",
+                        text = "Stock: ${producto.stock} (min: ${producto.stockMinimo})",
                         style = MaterialTheme.typography.bodyMedium,
                         color = when {
-                            producto.stock > 10 -> MaterialTheme.colorScheme.primary
-                            producto.stock > 0 -> MaterialTheme.colorScheme.onSurface
-                            else -> MaterialTheme.colorScheme.error
+                            sinStock -> MaterialTheme.colorScheme.error     // rojo
+                            esBajoStock -> MaterialTheme.colorScheme.error  // rojo en el texto también
+                            else -> MaterialTheme.colorScheme.onSurface
                         }
                     )
+
+                    if (sinStock) {
+                        Text(
+                            text = "⚠ Sin stock",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else if (esBajoStock) {
+                        Text(
+                            text = "⚠ Stock bajo",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
                 }
             }
-
             Column(
                 horizontalAlignment = Alignment.End
             ) {

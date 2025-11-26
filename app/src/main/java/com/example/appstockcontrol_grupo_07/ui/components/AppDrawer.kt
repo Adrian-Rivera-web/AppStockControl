@@ -76,19 +76,23 @@ fun userDrawerItems(
     onHome: () -> Unit,
     onListaProductos: () -> Unit,
     onPerfil: () -> Unit,
-    onListaCategorias: () -> Unit,
-    onListaProveedores: () -> Unit,
-    onEntradasSalidas: () -> Unit,
-    isAdmin: Boolean = false
-): List<DrawerItem> = listOf(
-    DrawerItem("Inicio", Icons.Filled.Home, onHome),
-    DrawerItem("Perfil", Icons.Filled.Person, onPerfil),
-    DrawerItem("Lista Productos", Icons.Filled.Inventory) {
-        onListaProductos() // Esta función ahora debe manejar el parámetro esAdmin
-    },
-    DrawerItem("Categorías", Icons.Filled.Category, onListaCategorias),
-    DrawerItem("Proveedores", Icons.Filled.LocalShipping, onListaProveedores)
-)
+    onEntradasSalidas: (() -> Unit)? = null
+): List<DrawerItem> {
+    val items = mutableListOf(
+        DrawerItem("Inicio", Icons.Filled.Home, onHome),
+        DrawerItem("Perfil", Icons.Filled.Person, onPerfil),
+        DrawerItem("Lista de productos", Icons.Filled.Inventory, onListaProductos)
+    )
+
+    // Opcional: mostrar movimientos si quieres que el usuario normal tenga acceso
+    if (onEntradasSalidas != null) {
+        items.add(
+            DrawerItem("Movimientos de inventario", Icons.Filled.List, onEntradasSalidas)
+        )
+    }
+
+    return items
+}
 
 @Composable
 fun defaultDrawerItems(

@@ -73,4 +73,17 @@ class UserRepository(
     suspend fun deleteUser(userId: Long) {
         userDao.deleteUser(userId)
     }
+    suspend fun changePassword(email: String, newPassword: String): String? {
+        val user = userDao.getByEmail(email) ?: return "Usuario no encontrado."
+
+        // ❌ No permitir que la nueva clave sea igual a la anterior
+        if (user.password == newPassword) {
+            return "La nueva contraseña no puede ser igual a la anterior."
+        }
+
+        // ✅ Actualizamos en la BD
+        userDao.updatePassword(email, newPassword)
+        return null  // null = todo OK
+    }
+
 }

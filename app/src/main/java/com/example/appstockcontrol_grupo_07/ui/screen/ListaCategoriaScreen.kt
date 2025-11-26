@@ -17,6 +17,10 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import com.example.appstockcontrol_grupo_07.model.Categoria
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,6 +68,9 @@ fun ListaCategoriasScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var categoriaAEliminar by remember { mutableStateOf<Categoria?>(null) }
+    var mostrarDialogoEliminarCategoria by remember { mutableStateOf(false) }
+
 
     // Efecto para buscar cuando cambia el query
     LaunchedEffect(searchQuery) {
@@ -229,15 +236,56 @@ fun ListaCategoriasScreen(
                         CategoriaCard(
                             categoria = categoria,
                             onCategoriaClick = {
-                                // Navegar a edición de la categoría
                                 navController.navigate("${Route.FormularioCategoria.path}?categoriaId=${categoria.id}")
                             },
                             onEliminarClick = {
-                                categoria.id?.let { viewModel.eliminarCategoria(it) }
+                                // 👇 en vez de eliminar al tiro, abrimos el diálogo
+                                categoriaAEliminar = categoria
+                                mostrarDialogoEliminarCategoria = true
                             }
                         )
                     }
                 }
+            }
+            if (mostrarDialogoEliminarCategoria && categoriaAEliminar != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        mostrarDialogoEliminarCategoria = false
+                        categoriaAEliminar = null
+                    },
+                    title = {
+                        Text("Eliminar categoría")
+                    },
+                    text = {
+                        Text(
+                            "¿Seguro que deseas eliminar la categoría \"${categoriaAEliminar?.nombre}\"? " +
+                                    "Esta acción no se puede deshacer."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                categoriaAEliminar?.id?.let { id ->
+                                    viewModel.eliminarCategoria(id)
+                                }
+                                mostrarDialogoEliminarCategoria = false
+                                categoriaAEliminar = null
+                            }
+                        ) {
+                            Text("Eliminar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                mostrarDialogoEliminarCategoria = false
+                                categoriaAEliminar = null
+                            }
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
             }
         }
     }

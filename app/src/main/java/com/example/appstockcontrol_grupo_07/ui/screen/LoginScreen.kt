@@ -36,10 +36,17 @@ import com.example.appstockcontrol_grupo_07.viewmodel.LoginViewModel
 import com.example.appstockcontrol_grupo_07.viewmodel.LoginViewModelFactory
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
+// 🔔 IMPORTS para vibración
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.content.Context
+
 @Composable
 fun LoginScreen(
     navController: NavController,
-    usuarioViewModel: UsuarioViewModel, // Recibir el ViewModel compartido
+    usuarioViewModel: UsuarioViewModel,
     loginViewModel: LoginViewModel = viewModel(
         factory = LoginViewModelFactory(
             UserRepository(
@@ -49,7 +56,31 @@ fun LoginScreen(
     )
 ) {
     val estado by loginViewModel.estado.collectAsState()
-    var mostrarClave by remember { mutableStateOf(false) } // ← Estado para mostrar/ocultar contraseña
+    var mostrarClave by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // 🔔 Función local para vibrar cuando haya un error
+    fun vibrarError() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vm.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(
+                    150L,
+                    VibrationEffect.DEFAULT_AMPLITUDE
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(150L)
+        }
+    }
 
     Column(
         modifier = Modifier.padding(all = 16.dp)
@@ -59,7 +90,7 @@ fun LoginScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
-        // Campo de texto para el correo electrónico
+        // Campo correo
         OutlinedTextField(
             value = estado.correo,
             onValueChange = loginViewModel::onCorreoChange,
@@ -75,14 +106,17 @@ fun LoginScreen(
                 .padding(vertical = 8.dp)
         )
 
-        // Campo de texto para la contraseña - MODIFICADO
+        // Campo contraseña
         OutlinedTextField(
             value = estado.clave,
             onValueChange = loginViewModel::onClaveChange,
             label = { Text(text = "Contraseña") },
-            visualTransformation = if (mostrarClave) VisualTransformation.None else PasswordVisualTransformation(), // ← Cambia la transformación visual
+            visualTransformation = if (mostrarClave) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
             trailingIcon = {
-                // Ícono para mostrar/ocultar contraseña
                 IconButton(onClick = { mostrarClave = !mostrarClave }) {
                     Icon(
                         imageVector = if (mostrarClave) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
@@ -101,7 +135,7 @@ fun LoginScreen(
                 .padding(vertical = 8.dp)
         )
 
-        // Mostrar error de autenticación si existe
+        // Error de autenticación (usuario/clave incorrectos)
         estado.errorAutenticacion?.let { error ->
             Text(
                 text = error,
@@ -117,7 +151,7 @@ fun LoginScreen(
                 .padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Botón para ir a Registro
+            // Cuenta nueva
             Button(
                 onClick = {
                     loginViewModel.limpiarFormulario()
@@ -129,37 +163,43 @@ fun LoginScreen(
                 Text("Cuenta Nueva")
             }
 
-            // Botón para iniciar sesión
+            // 🔔 Botón de inicio de sesión con vibración
             Button(
                 onClick = {
                     println("DEBUG: LoginScreen - Botón de login presionado")
+
+                    // 1️⃣ Primero validamos el formulario
+                    val esValido = loginViewModel.validarLogin()
+                    if (!esValido) {
+                        // Si los campos están mal (correo inválido, clave corta, etc.) → vibrar y salir
+                        vibrarError()
+                        return@Button
+                    }
+
+                    // 2️⃣ Si el formulario es válido, intentamos autenticar
                     loginViewModel.autenticarUsuario { exitoso, nombreUsuario, esAdmin ->
                         println("DEBUG: LoginScreen - Callback recibido: exitoso=$exitoso, nombre=$nombreUsuario, esAdmin=$esAdmin")
 
                         if (exitoso) {
-                            // Actualizar el ViewModel compartido
                             usuarioViewModel.iniciarSesion(
                                 correo = estado.correo,
                                 esAdmin = esAdmin,
                                 nombre = nombreUsuario ?: "Usuario"
                             )
 
-                            println("DEBUG: LoginScreen - UsuarioViewModel actualizado, navegando...")
-
-                            // Navegación inmediata
                             if (esAdmin) {
-                                println("DEBUG: LoginScreen - 🚀 Navegando a HomeAdmin")
                                 navController.navigate(Route.HomeAdmin.path) {
                                     popUpTo(Route.Login.path) { inclusive = true }
                                 }
                             } else {
-                                println("DEBUG: LoginScreen - 🚀 Navegando a Home")
                                 navController.navigate(Route.Home.path) {
                                     popUpTo(Route.Login.path) { inclusive = true }
                                 }
                             }
                         } else {
                             println("DEBUG: LoginScreen - Autenticación fallida")
+                            // 3️⃣ Si el usuario/clave no coinciden → vibrar también
+                            vibrarError()
                         }
                     }
                 },
@@ -180,7 +220,7 @@ fun LoginScreen(
             }
         }
 
-        // Información de debug actualizada con usuarios de Room
+        // Info extra
         Text(
             text = "Usuarios predefinidos:\n" +
                     "• ad.rivera@duocuc.cl / Admin_123 (Admin)\n" +
@@ -189,5 +229,67 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp)
         )
+    }
+}
+/**
+ * 🔔 Botón reutilizable que:
+ *  - Ejecuta onGuardar()
+ *  - Si tieneErrores == true → hace vibrar el dispositivo
+ *  - Puede mostrar spinner si mostrandoCarga == true
+ */
+@Composable
+fun BotonGuardarConVibrador(
+    tieneErrores: Boolean,
+    onGuardar: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    texto: String = "Guardar",
+    mostrandoCarga: Boolean = false
+) {
+    val context = LocalContext.current
+
+    fun vibrarError() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vm.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(
+                    150L,
+                    VibrationEffect.DEFAULT_AMPLITUDE
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(150L)
+        }
+    }
+
+    Button(
+        onClick = {
+            onGuardar()
+            if (tieneErrores) {
+                vibrarError()
+            }
+        },
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        if (mostrandoCarga) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(end = 8.dp),
+                    strokeWidth = 2.dp
+                )
+                Text(texto)
+            }
+        } else {
+            Text(texto)
+        }
     }
 }

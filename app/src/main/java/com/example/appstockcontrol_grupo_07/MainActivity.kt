@@ -9,6 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+
 import androidx.navigation.compose.rememberNavController
 import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
 import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
@@ -69,7 +75,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppStockControl_Grupo_07Theme {
+
+            // 🌗 Tema actual (empieza igual que el sistema)
+            val systemDark = isSystemInDarkTheme()
+            var isDarkTheme by rememberSaveable { mutableStateOf(systemDark) }
+
+            AppStockControl_Grupo_07Theme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -79,10 +90,17 @@ class MainActivity : ComponentActivity() {
                         productoViewModel = productoViewModel,
                         adminViewModel = adminViewModel,
                         categoriaViewModelFactory = categoriaViewModelFactory,
-                        formularioCategoriaViewModelFactory = formularioCategoriaViewModelFactory
+                        formularioCategoriaViewModelFactory = formularioCategoriaViewModelFactory,
+                        onToggleTheme = {
+                            // Cambiar booleano
+                            isDarkTheme = !isDarkTheme
+                            // “Reiniciar” la Activity para que todo se vuelva a dibujar
+                            this@MainActivity.recreate()
+                        }
                     )
                 }
             }
         }
     }
+
 }

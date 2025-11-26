@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,13 +21,20 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,8 +42,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
 import com.example.appstockcontrol_grupo_07.navigation.Route
 import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
+import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
+import com.example.appstockcontrol_grupo_07.data.repository.UserRepository
+import kotlinx.coroutines.launch
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +64,21 @@ fun PerfilScreen(
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val nombreUsuario by usuarioViewModel.nombreUsuario.collectAsState()
     val esAdmin by usuarioViewModel.esAdmin.collectAsState()
+
+    // 🧠 Acceso a BD / repositorio
+    val context = LocalContext.current
+    val db = remember { AppDatabase.getInstance(context) }
+    val userRepository = remember { UserRepository(db.userDao()) }
+    val scope = rememberCoroutineScope()
+
+    // 🔐 Estados para dialogs y cambio de contraseña
+    var mostrarDialogoConfirmacion by remember { mutableStateOf(false) }
+    var mostrarDialogoCambio by remember { mutableStateOf(false) }
+    var mostrarExito by remember { mutableStateOf(false) }
+
+    var nuevaClave by remember { mutableStateOf("") }
+    var confirmarClave by remember { mutableStateOf("") }
+    var mensajeError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -77,7 +108,7 @@ fun PerfilScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header con avatar
+            // Header con avatar + rol + nombre
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -92,29 +123,40 @@ fun PerfilScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar del usuario
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .padding(8.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-
-                    Text(
-                        text = nombreUsuario ?: "Usuario",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-
+                    // Rol ARRIBA
                     Text(
                         text = if (esAdmin) "Administrador" else "Usuario",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 12.dp, bottom = 8.dp)
+                            .size(110.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface) // fondo claro
+                            .border(
+                                width = 3.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Nombre COMPLETO debajo
+                    Text(
+                        text = nombreUsuario ?: "Nombre Apellido",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -135,50 +177,48 @@ fun PerfilScreen(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    // Item de email
                     InfoItem(
                         icon = Icons.Filled.Email,
                         label = "Email",
                         value = usuarioLogueado ?: "No disponible"
                     )
 
-                    // Item de rol
                     InfoItem(
                         icon = Icons.Filled.Security,
                         label = "Rol",
-                        value = if (esAdmin) "Administrador" else "Usuario Normal"
+                        value = if (esAdmin) "Administrador" else "Usuario"
                     )
 
-                    // Item de estado
                     InfoItem(
                         icon = Icons.Filled.Person,
                         label = "Estado",
-                        value = "Activo" // Podrías agregar este campo al ViewModel
+                        value = "Activo"
                     )
                 }
             }
 
-            // Botones de acción
+            // Botones de acción (solo cambiar contraseña y cerrar sesión)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Botón para editar perfil (si implementas esta funcionalidad)
+                // 🧩 Cambiar contraseña
                 Button(
                     onClick = {
-                        // Navegar a pantalla de edición de perfil
-                        // navController.navigate("editarPerfil")
+                        nuevaClave = ""
+                        confirmarClave = ""
+                        mensajeError = null
+                        mostrarDialogoConfirmacion = true
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = false // Deshabilitado hasta que implementes la funcionalidad
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.Edit, "Editar", modifier = Modifier.size(20.dp))
-                    Text("Editar Perfil", modifier = Modifier.padding(start = 8.dp))
+                    Icon(Icons.Filled.Security, "Cambiar", modifier = Modifier.size(20.dp))
+                    Text("Cambiar Contraseña", modifier = Modifier.padding(start = 8.dp))
                 }
 
-                // Botón de cierre de sesión
+                // 🔒 Cerrar sesión
                 OutlinedButton(
                     onClick = {
                         usuarioViewModel.cerrarSesion()
@@ -192,6 +232,110 @@ fun PerfilScreen(
                 }
             }
         }
+    }
+
+    // 🔔 Dialogo de confirmación
+    if (mostrarDialogoConfirmacion) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoConfirmacion = false },
+            title = { Text("Confirmar acción") },
+            text = { Text("¿Está seguro de que desea cambiar su contraseña?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarDialogoConfirmacion = false
+                    mostrarDialogoCambio = true
+                }) {
+                    Text("Sí, cambiar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoConfirmacion = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // 🔐 Dialogo para ingresar nueva contraseña (solo nueva + confirmación)
+    if (mostrarDialogoCambio) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoCambio = false },
+            title = { Text("Cambiar contraseña") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = nuevaClave,
+                        onValueChange = { nuevaClave = it },
+                        label = { Text("Nueva contraseña") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = confirmarClave,
+                        onValueChange = { confirmarClave = it },
+                        label = { Text("Confirmar nueva contraseña") },
+                        singleLine = true
+                    )
+                    if (mensajeError != null) {
+                        Text(
+                            text = mensajeError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    when {
+                        nuevaClave.isBlank() || confirmarClave.isBlank() ->
+                            mensajeError = "Debe completar ambos campos."
+                        nuevaClave != confirmarClave ->
+                            mensajeError = "Las contraseñas no coinciden."
+                        else -> {
+                            val emailActual = usuarioLogueado
+                            if (emailActual.isNullOrBlank()) {
+                                mensajeError = "No se encontró el usuario actual."
+                            } else {
+                                // 🚀 Actualizar en Room
+                                scope.launch {
+                                    val error = userRepository.changePassword(emailActual, nuevaClave)
+                                    if (error == null) {
+                                        mensajeError = null
+                                        mostrarDialogoCambio = false
+                                        mostrarExito = true
+                                    } else {
+                                        mensajeError = error
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    mostrarDialogoCambio = false
+                }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // ✅ Mensaje de éxito
+    if (mostrarExito) {
+        AlertDialog(
+            onDismissRequest = { mostrarExito = false },
+            title = { Text("Éxito") },
+            text = { Text("Contraseña cambiada correctamente.") },
+            confirmButton = {
+                TextButton(onClick = { mostrarExito = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 }
 
@@ -226,24 +370,7 @@ fun InfoItem(icon: ImageVector, label: String, value: String) {
     }
 }
 
-@Composable
-fun StatItem(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// Necesitas agregar este Composable para el IconButton
+// Wrapper para usar IconButton de Material3 sin conflictos
 @Composable
 fun IconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     androidx.compose.material3.IconButton(onClick = onClick, content = content)

@@ -53,15 +53,16 @@ fun AppTopBar(
                 onDismissRequest = { showMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Configuración") },
+                    text = { Text("Cambiar tema") },
                     onClick = {
                         showMenu = false
-                        onSettings()
+                        onSettings()   // 👈 sigue llamando al callback que ahora cambia el tema
                     },
                     leadingIcon = {
-                        Icon(Icons.Filled.Settings, contentDescription = "Configuración")
+                        Icon(Icons.Filled.Settings, contentDescription = "Cambiar tema")
                     }
                 )
+
                 DropdownMenuItem(
                     text = { Text("Cerrar Sesión") },
                     onClick = {

@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.appstockcontrol_grupo_07.data.local.user.UserDao
 import com.example.appstockcontrol_grupo_07.data.local.user.UserEntity
 import com.example.appstockcontrol_grupo_07.data.local.producto.ProductoDao
@@ -14,9 +12,10 @@ import com.example.appstockcontrol_grupo_07.data.local.categoria.CategoriaDao
 import com.example.appstockcontrol_grupo_07.data.local.categoria.CategoriaEntity
 import com.example.appstockcontrol_grupo_07.data.local.proveedor.ProveedorDao
 import com.example.appstockcontrol_grupo_07.data.local.proveedor.ProveedorEntity
+import com.example.appstockcontrol_grupo_07.data.local.movimiento.MovimientoInventarioEntity
+import com.example.appstockcontrol_grupo_07.data.local.movimiento.MovimientoInventarioDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Database(
@@ -24,9 +23,10 @@ import kotlinx.coroutines.launch
         UserEntity::class,
         ProductoEntity::class,
         CategoriaEntity::class,
-        ProveedorEntity::class
+        ProveedorEntity::class,
+        MovimientoInventarioEntity::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,79 +35,73 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun productoDao(): ProductoDao
     abstract fun categoriaDao(): CategoriaDao
     abstract fun proveedorDao(): ProveedorDao
+    abstract fun movimientoInventarioDao(): MovimientoInventarioDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        private const val DB_NAME = "ui_navegacion_v7.db"
+        private const val DB_NAME = "ui_navegacion_v9.db"
 
         fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    DB_NAME
-                )
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            super.onCreate(db)
-
-                            val database = INSTANCE
-                            if (database != null) {
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    initializeData(database)
-                                }
-                            } else {
-                                println("DEBUG: AppDatabase - INSTANCE es nula en onCreate")
-                            }
-                        }
-                    })
-                    .addMigrations(MIGRATION_6_7)
-                    .fallbackToDestructiveMigration()
-                    .build()
-
-                INSTANCE = instance
-
-                instance
+            // 🔹 Si ya existe, la devolvemos
+            val instanciaExistente = INSTANCE
+            if (instanciaExistente != null) {
+                println("DEBUG: AppDatabase.getInstance - usando instancia existente")
+                return instanciaExistente
             }
-        }
 
-        private val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    """
-                    CREATE TABLE proveedores (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        nombre TEXT NOT NULL,
-                        contacto TEXT NOT NULL,
-                        telefono TEXT NOT NULL,
-                        email TEXT NOT NULL,
-                        direccion TEXT NOT NULL,
-                        activo INTEGER NOT NULL
+            // 🔹 Si no existe, la creamos sincronizadamente
+            return synchronized(this) {
+                val instanciaOtraVez = INSTANCE
+                if (instanciaOtraVez != null) {
+                    println("DEBUG: AppDatabase.getInstance - usando instancia existente (dentro de synchronized)")
+                    instanciaOtraVez
+                } else {
+                    println("DEBUG: AppDatabase.getInstance - creando instancia nueva de Room")
+
+                    val instance = Room.databaseBuilder(
+                        context.applicationContext,
+                        AppDatabase::class.java,
+                        DB_NAME
                     )
-                    """
-                )
+                        .fallbackToDestructiveMigration()
+                        .build()
+
+                    INSTANCE = instance
+
+                    // 🔹 IMPORTANTE: inicializar datos aquí (ya tenemos la instancia)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        println("DEBUG: AppDatabase.getInstance - lanzando initializeData() en background")
+                        initializeData(instance)
+                        println("DEBUG: AppDatabase.getInstance - initializeData() terminó")
+                    }
+
+                    instance
+                }
             }
         }
-
         private suspend fun initializeData(database: AppDatabase) {
+            println("DEBUG: AppDatabase.initializeData - INICIO")
+
             try {
                 val userDao = database.userDao()
                 val productoDao = database.productoDao()
                 val categoriaDao = database.categoriaDao()
                 val proveedorDao = database.proveedorDao()
 
-
+                // 🔹 Contadores actuales
                 val userCount = userDao.count()
                 val productoCount = productoDao.count()
                 val categoriaCount = categoriaDao.count()
                 val proveedorCount = proveedorDao.count()
 
-
+                println("DEBUG: AppDatabase.initializeData - userCount = $userCount")
+                println("DEBUG: AppDatabase.initializeData - productoCount = $productoCount")
+                println("DEBUG: AppDatabase.initializeData - categoriaCount = $categoriaCount")
+                println("DEBUG: AppDatabase.initializeData - proveedorCount = $proveedorCount")
 
                 if (userCount == 0) {
-
+                    println("DEBUG: AppDatabase.initializeData - insertando usuarios de prueba...")
                     val users = listOf(
                         UserEntity(
                             name = "Adrian",
@@ -128,15 +122,14 @@ abstract class AppDatabase : RoomDatabase() {
                     )
 
                     users.forEach { user ->
-                        val id = userDao.insert(user)
+                        userDao.insert(user)
 
                     }
                 }
 
 
                 if (categoriaCount == 0) {
-
-
+                    println("DEBUG: AppDatabase.initializeData - insertando categorías de prueba...")
                     val categorias = listOf(
                         CategoriaEntity(
                             nombre = "Electrónicos",
@@ -339,7 +332,7 @@ abstract class AppDatabase : RoomDatabase() {
                     }
                 }
 
-                // ✅ INICIALIZAR PRODUCTOS SI NO EXISTEN
+
                 if (productoCount == 0) {
                     println("DEBUG: AppDatabase - Insertando productos de prueba...")
 
@@ -349,6 +342,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Laptop para gaming de alta gama con RTX 4060, 16GB RAM, 1TB SSD",
                             precio = 1299.99,
                             stock = 8,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "ASUS Chile"
                         ),
@@ -357,6 +351,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Mouse ergonómico inalámbrico con sensor óptico de alta precisión",
                             precio = 35.50,
                             stock = 25,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "Logitech"
                         ),
@@ -365,6 +360,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Teclado mecánico RGB con switches azules y retroiluminación personalizable",
                             precio = 89.99,
                             stock = 15,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "Logitech"
                         ),
@@ -373,6 +369,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Monitor Full HD 144Hz para gaming con panel VA curvado",
                             precio = 249.99,
                             stock = 12,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "Samsung Electronics"
                         ),
@@ -381,6 +378,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Auriculares inalámbricos con cancelación de ruido activa y 30h de batería",
                             precio = 199.99,
                             stock = 18,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "Sony Chile"
                         ),
@@ -389,6 +387,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Camiseta deportiva de alta calidad para running con tecnología Dri-FIT",
                             precio = 45.99,
                             stock = 30,
+                            stockMinimo = 5,
                             categoria = "Ropa",
                             proveedor = "Nike Chile"
                         ),
@@ -397,6 +396,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Zapatillas profesionales para running con amortiguación Boost",
                             precio = 89.99,
                             stock = 20,
+                            stockMinimo = 5,
                             categoria = "Deportes",
                             proveedor = "Adidas Chile"
                         ),
@@ -405,6 +405,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Balón oficial tamaño 5 para competencia con diseño profesional",
                             precio = 29.99,
                             stock = 15,
+                            stockMinimo = 5,
                             categoria = "Deportes",
                             proveedor = "Adidas Chile"
                         ),
@@ -413,6 +414,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Sofá moderno de 3 plazas color gris con estructura en madera",
                             precio = 599.99,
                             stock = 5,
+                            stockMinimo = 5,
                             categoria = "Hogar",
                             proveedor = "Muebles Chile S.A."
                         ),
@@ -421,6 +423,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Lámpara LED moderna con regulador de intensidad y control por app",
                             precio = 39.99,
                             stock = 25,
+                            stockMinimo = 5,
                             categoria = "Hogar",
                             proveedor = "Iluminación Home"
                         ),
@@ -429,6 +432,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Arroz integral orgánico en paquete de 1kg, cultivado naturalmente",
                             precio = 3.99,
                             stock = 50,
+                            stockMinimo = 5,
                             categoria = "Alimentos",
                             proveedor = "Super Alimentos S.A."
                         ),
@@ -437,6 +441,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Aceite de oliva extra virgen 500ml, primera prensada en frío",
                             precio = 12.99,
                             stock = 40,
+                            stockMinimo = 5,
                             categoria = "Alimentos",
                             proveedor = "Aceites Premium S.A."
                         ),
@@ -445,6 +450,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Libro sobre principios de desarrollo de software limpio y mantenible",
                             precio = 49.99,
                             stock = 10,
+                            stockMinimo = 5,
                             categoria = "Libros",
                             proveedor = "Editorial Técnica Ltda."
                         ),
@@ -453,6 +459,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Set de construcción Lego Technic Bugatti Chiron para mayores de 10 años",
                             precio = 79.99,
                             stock = 8,
+                            stockMinimo = 5,
                             categoria = "Juguetes",
                             proveedor = "Lego Distribuidora"
                         ),
@@ -461,6 +468,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Crema hidratante para piel seca 50ml con ácido hialurónico y vitamina E",
                             precio = 24.99,
                             stock = 35,
+                            stockMinimo = 5,
                             categoria = "Salud y Belleza",
                             proveedor = "Dermatológica Premium"
                         ),
@@ -469,6 +477,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Tablet Android con 64GB de almacenamiento, pantalla 2.8K, 8GB RAM",
                             precio = 299.99,
                             stock = 10,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "Xiaomi Chile"
                         ),
@@ -477,6 +486,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Impresora láser WiFi con escáner y copiadora, tóner incluido",
                             precio = 179.99,
                             stock = 6,
+                            stockMinimo = 5,
                             categoria = "Oficina",
                             proveedor = "HP Chile"
                         ),
@@ -485,6 +495,7 @@ abstract class AppDatabase : RoomDatabase() {
                             descripcion = "Disco duro externo USB 3.0 portátil, compatible con PC y Mac",
                             precio = 59.99,
                             stock = 30,
+                            stockMinimo = 5,
                             categoria = "Electrónicos",
                             proveedor = "HP Chile"
                         )
@@ -495,39 +506,9 @@ abstract class AppDatabase : RoomDatabase() {
                         println("DEBUG: AppDatabase - Insertado producto: ${producto.nombre} (ID: $id)")
                     }
                 }
-
-                // ✅ VERIFICACIÓN FINAL
-                val allUsers = userDao.getAll()
-                val allProductos = productoDao.getAll().first()
-                val allCategorias = categoriaDao.obtenerTodas().first()
-                val allProveedores = proveedorDao.obtenerTodos().first()
-
-                println("DEBUG: AppDatabase - Verificación Final:")
-                println("DEBUG: AppDatabase - Total usuarios: ${allUsers.size}")
-                println("DEBUG: AppDatabase - Total productos: ${allProductos.size}")
-                println("DEBUG: AppDatabase - Total categorías: ${allCategorias.size}")
-                println("DEBUG: AppDatabase - Total proveedores: ${allProveedores.size}")
-
-                // Mostrar categorías
-                println("DEBUG: AppDatabase - Categorías disponibles:")
-                allCategorias.forEach { categoria ->
-                    println("DEBUG: AppDatabase - • ${categoria.nombre}: ${categoria.descripcion}")
-                }
-
-                // Mostrar proveedores
-                println("DEBUG: AppDatabase - Proveedores disponibles:")
-                allProveedores.forEach { proveedor ->
-                    println("DEBUG: AppDatabase - • ${proveedor.nombre}: ${proveedor.contacto} - ${proveedor.telefono}")
-                }
-
-                // Mostrar productos
-                println("DEBUG: AppDatabase - Productos disponibles:")
-                allProductos.forEach { producto ->
-                    println("DEBUG: AppDatabase - • ${producto.nombre} | Categoría: ${producto.categoria} | Proveedor: ${producto.proveedor} | Precio: $${producto.precio} | Stock: ${producto.stock}")
-                }
-
+                println("DEBUG: AppDatabase.initializeData - FIN OK")
             } catch (e: Exception) {
-                println("ERROR: AppDatabase - Error en initializeData: ${e.message}")
+                println("ERROR: AppDatabase.initializeData - Error: ${e.message}")
                 e.printStackTrace()
             }
         }

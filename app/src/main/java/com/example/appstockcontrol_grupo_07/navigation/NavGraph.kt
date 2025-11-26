@@ -2,6 +2,8 @@ package com.example.appstockcontrol_grupo_07.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerValue
+import androidx.navigation.navArgument
+import androidx.navigation.compose.composable
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
@@ -12,24 +14,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import com.example.appstockcontrol_grupo_07.ui.components.adminDrawerItems
 import com.example.appstockcontrol_grupo_07.ui.components.userDrawerItems
 import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
 import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
 import com.example.appstockcontrol_grupo_07.data.repository.ProveedorRepository
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
+import com.example.appstockcontrol_grupo_07.data.repository.MovimientoInventarioRepository
+import com.example.appstockcontrol_grupo_07.viewmodel.MovimientoInventarioViewModel
+import com.example.appstockcontrol_grupo_07.viewmodel.MovimientoInventarioViewModelFactory
 import com.example.appstockcontrol_grupo_07.ui.components.AppBottomBarV2
 import com.example.appstockcontrol_grupo_07.ui.components.AppDrawer
 import com.example.appstockcontrol_grupo_07.ui.components.AppTopBar
-import com.example.appstockcontrol_grupo_07.ui.components.defaultDrawerItems
 import com.example.appstockcontrol_grupo_07.ui.screen.*
 import com.example.appstockcontrol_grupo_07.viewmodel.*
 import kotlinx.coroutines.launch
@@ -41,7 +42,8 @@ fun AppNavGraph(
     productoViewModel: ProductoViewModel,
     adminViewModel: AdminViewModel,
     categoriaViewModelFactory: CategoriaViewModelFactory,
-    formularioCategoriaViewModelFactory: FormularioCategoriaViewModelFactory
+    formularioCategoriaViewModelFactory: FormularioCategoriaViewModelFactory,
+    onToggleTheme: () -> Unit
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -139,19 +141,12 @@ fun AppNavGraph(
                     closeDrawer()
                 },
                 onListaProductos = {
-                    navigateTo(Route.ListaProductos.path)
+                    // Usuario normal → esAdmin = false
+                    navigateTo("listaProductos?esAdmin=false")
                     closeDrawer()
                 },
                 onPerfil = {
-                    navigateTo("perfil") // Asegúrate de que la ruta para perfil esté definida en Route o sea la correcta
-                    closeDrawer()
-                },
-                onListaCategorias = {
-                    navigateTo(Route.ListaCategoria.path)
-                    closeDrawer()
-                },
-                onListaProveedores = {
-                    navigateTo(Route.ListaProveedores.path)
+                    navigateTo(Route.Perfil.path)
                     closeDrawer()
                 },
                 onEntradasSalidas = {
@@ -195,7 +190,8 @@ fun AppNavGraph(
                     AppTopBar(
                         onOpenDrawer = openDrawer,
                         onSettings = {
-                            println("Navegar a pantalla de configuración")
+                            // Antes solo hacía println; ahora cambia el tema
+                            onToggleTheme()
                         },
                         onLogout = {
                             println("DEBUG: AppNavGraph - Cerrando sesión desde TopBar")
@@ -325,7 +321,21 @@ fun AppNavGraph(
                     val productoId = backStackEntry.arguments?.getString("productoId")
                     FormularioProductoScreen(navController, productoId)
                 }
+                composable(
+                    route = Route.DetalleProducto.path + "?productoId={productoId}",
+                    arguments = listOf(
+                        navArgument("productoId") {
+                            defaultValue = "0"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val productoId = backStackEntry.arguments?.getString("productoId")
 
+                    DetalleProductoScreen(
+                        navController = navController,
+                        productoId = productoId
+                    )
+                }
                 composable(Route.ListaCategoria.path) {
                     val context = LocalContext.current
                     val database = AppDatabase.getInstance(context)
@@ -357,8 +367,7 @@ fun AppNavGraph(
                     val categoriaId = backStackEntry.arguments?.getString("categoriaId")
                     FormularioCategoriaScreen(
                         navController = navController,
-                        categoriaId = categoriaId,
-                        viewModel = formularioCategoriaViewModel
+                        categoriaId = categoriaId
                     )
                 }
                 composable(Route.Categoria.path) {
@@ -373,6 +382,32 @@ fun AppNavGraph(
                 composable(Route.Usuario.path) {
                     UsuarioScreen(navController, usuarioViewModel)
                 }
+                composable(Route.ReportesInventario.path) {
+                    ReportesInventarioScreen(navController = navController)
+                }
+
+                composable(Route.Entradas_y_Salidas_Productos.path) {
+                    val context = LocalContext.current
+                    val database = AppDatabase.getInstance(context)
+
+                    val productoRepository = ProductoRepository(database.productoDao())
+                    val movimientoRepository = MovimientoInventarioRepository(database.movimientoInventarioDao())
+
+                    val movimientosViewModel: MovimientoInventarioViewModel = viewModel(
+                        factory = MovimientoInventarioViewModelFactory(
+                            movimientoRepo = movimientoRepository,
+                            productoRepo = productoRepository
+                        )
+                    )
+
+                    EntradasSalidasScreen(
+                        navController = navController,
+                        productoViewModel = productoViewModel,
+                        movimientosViewModel = movimientosViewModel,
+                        usuarioViewModel = usuarioViewModel
+                    )
+                }
+
 
             }
         }
