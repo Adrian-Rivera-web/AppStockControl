@@ -4,18 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.Modifier
 import com.example.appstockcontrol_grupo_07.data.local.database.AppDatabase
 import com.example.appstockcontrol_grupo_07.data.repository.CategoriaRepository
 import com.example.appstockcontrol_grupo_07.data.repository.ProductoRepository
@@ -32,12 +29,12 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
 class MainActivity : ComponentActivity() {
 
-    // Obtener la base de datos usando el método getInstance que ya tienes
+    // 🔹 Base de datos (Room) – singleton
     private val database by lazy {
         AppDatabase.getInstance(this)
     }
 
-    // Repositorios
+    // 🔹 Repositorios (ahora UserRepository ya habla con el microservicio)
     private val userRepository by lazy {
         UserRepository(database.userDao())
     }
@@ -50,7 +47,7 @@ class MainActivity : ComponentActivity() {
         CategoriaRepository(database.categoriaDao())
     }
 
-    // Factories para ViewModels
+    // 🔹 Factories para ViewModels
     private val productoViewModelFactory by lazy {
         ProductoViewModelFactory(productoRepository)
     }
@@ -67,16 +64,16 @@ class MainActivity : ComponentActivity() {
         FormularioCategoriaViewModelFactory(categoriaRepository)
     }
 
-    // ViewModels
+    // 🔹 ViewModels a nivel de Activity (compartidos en toda la app)
     private val usuarioViewModel: UsuarioViewModel by viewModels()
     private val productoViewModel: ProductoViewModel by viewModels { productoViewModelFactory }
     private val adminViewModel: AdminViewModel by viewModels { adminViewModelFactory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
 
-            // 🌗 Tema actual (empieza igual que el sistema)
+        setContent {
+            // 🌗 Tema actual (comienza igual que el del sistema)
             val systemDark = isSystemInDarkTheme()
             var isDarkTheme by rememberSaveable { mutableStateOf(systemDark) }
 
@@ -92,15 +89,12 @@ class MainActivity : ComponentActivity() {
                         categoriaViewModelFactory = categoriaViewModelFactory,
                         formularioCategoriaViewModelFactory = formularioCategoriaViewModelFactory,
                         onToggleTheme = {
-                            // Cambiar booleano
+                            // Solo cambiamos el estado, Compose re-dibuja todo
                             isDarkTheme = !isDarkTheme
-                            // “Reiniciar” la Activity para que todo se vuelva a dibujar
-                            this@MainActivity.recreate()
                         }
                     )
                 }
             }
         }
     }
-
 }

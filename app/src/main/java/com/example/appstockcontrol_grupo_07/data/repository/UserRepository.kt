@@ -2,36 +2,34 @@ package com.example.appstockcontrol_grupo_07.data.repository
 
 import com.example.appstockcontrol_grupo_07.data.local.user.UserDao
 import com.example.appstockcontrol_grupo_07.data.local.user.UserEntity
+import com.example.appstockcontrol_grupo_07.remote.LoginRequestDto
+import com.example.appstockcontrol_grupo_07.remote.RegistroRequestDto
+import com.example.appstockcontrol_grupo_07.remote.UsuarioApi
+import com.example.appstockcontrol_grupo_07.remote.UsuarioResponseDto
+import com.example.appstockcontrol_grupo_07.remote.RetrofitInstance
 
 class UserRepository(
-    private val userDao: UserDao
+    // Lo dejamos opcional para seguir usando funciones locales si hace falta
+    private val userDao: UserDao? = null,
+    private val api: UsuarioApi = RetrofitInstance.usuarioApi
 ) {
 
+    // 🔐 LOGIN contra el microservicio
     suspend fun login(email: String, password: String): Result<UserEntity> {
-        println("DEBUG: UserRepository - Iniciando login para: $email")
-
-        val user = userDao.getByEmail(email)
-        println("DEBUG: UserRepository - Usuario encontrado: ${user?.email}")
-        println("DEBUG: UserRepository - isAdmin del usuario: ${user?.isAdmin}")
-
-        if (user == null) {
-            println("DEBUG: UserRepository - ERROR: Usuario no encontrado")
-            return Result.failure(IllegalArgumentException("Usuario no encontrado"))
-        }
-
-        println("DEBUG: UserRepository - Comparando contraseñas...")
-        println("DEBUG: UserRepository - Contraseña ingresada: $password")
-        println("DEBUG: UserRepository - Contraseña en BD: ${user.password}")
-
-        return if (user.password == password) {
-            println("DEBUG: UserRepository - ✅ LOGIN EXITOSO - Usuario: ${user.email}, isAdmin: ${user.isAdmin}")
-            Result.success(user)
-        } else {
-            println("DEBUG: UserRepository - ❌ LOGIN FALLIDO - Contraseña incorrecta")
-            Result.failure(IllegalArgumentException("Contraseña incorrecta"))
+        return try {
+            val dto = api.login(
+                LoginRequestDto(
+                    correo = email,
+                    clave = password
+                )
+            )
+            Result.success(dto.toUserEntity())
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
+    // 📝 REGISTRO contra el microservicio
     suspend fun register(
         name: String,
         email: String,
@@ -40,50 +38,61 @@ class UserRepository(
         address: String,
         isAdmin: Boolean = false
     ): Result<Long> {
-        val exists = userDao.getByEmail(email) != null
-        if (exists) {
-            return Result.failure(IllegalStateException("El correo ya está registrado"))
-        }
-        val id = userDao.insert(
-            UserEntity(
-                name = name,
-                email = email,
-                phone = phone,
-                password = password,
-                address = address,
-                isAdmin = isAdmin
+        return try {
+            val dto = api.registrar(
+                RegistroRequestDto(
+                    nombre = name,
+                    correo = email,
+                    telefono = phone,
+                    clave = password,
+                    direccion = address,
+                    aceptaTerminos = true   // tu formulario ya controla esto
+                )
             )
-        )
-        return Result.success(id)
+            // Devolvemos el id que viene desde el backend
+            Result.success(dto.id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    suspend fun getUserByEmail(email: String): UserEntity? {
-        return userDao.getByEmail(email)
-    }
-
-    suspend fun getUserCount(): Int {
-        return userDao.count()
-    }
-
+    // 👥 LISTA de usuarios para UsuarioScreen/AdminViewModel
     suspend fun getAllUsers(): List<UserEntity> {
-        return userDao.getAll()
+        val remotos = api.obtenerUsuarios()
+        return remotos.map { it.toUserEntity() }
     }
 
-    // ✅ AGREGAR ESTA FUNCIÓN PARA ELIMINAR USUARIOS
+    // ❌ ELIMINAR usuario (solo no admins en la UI)
     suspend fun deleteUser(userId: Long) {
-        userDao.deleteUser(userId)
+        val response = api.eliminarUsuario(userId)
+        if (!response.isSuccessful) {
+            throw IllegalStateException("Error al eliminar usuario: ${response.code()}")
+        }
     }
-    suspend fun changePassword(email: String, newPassword: String): String? {
-        val user = userDao.getByEmail(email) ?: return "Usuario no encontrado."
 
-        // ❌ No permitir que la nueva clave sea igual a la anterior
+    // 🔐 CAMBIAR CONTRASEÑA (por ahora sigue siendo local)
+    suspend fun changePassword(email: String, newPassword: String): String? {
+        val dao = userDao ?: return "Cambio de contraseña solo disponible en modo local."
+
+        val user = dao.getByEmail(email) ?: return "Usuario no encontrado."
+
         if (user.password == newPassword) {
             return "La nueva contraseña no puede ser igual a la anterior."
         }
 
-        // ✅ Actualizamos en la BD
-        userDao.updatePassword(email, newPassword)
+        dao.updatePassword(email, newPassword)
         return null  // null = todo OK
     }
-
 }
+
+// 🔁 Mapeo DTO → UserEntity (AJUSTA a cómo esté definida tu UserEntity)
+private fun UsuarioResponseDto.toUserEntity(): UserEntity =
+    UserEntity(
+        id = this.id,
+        name = this.nombre,
+        email = this.correo,
+        phone = this.telefono,
+        password = "",          // la clave se maneja solo en el backend
+        address = this.direccion,
+        isAdmin = this.esAdmin
+    )
