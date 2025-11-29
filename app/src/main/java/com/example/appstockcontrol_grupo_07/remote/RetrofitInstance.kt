@@ -1,24 +1,61 @@
 package com.example.appstockcontrol_grupo_07.remote
 
-import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
 
-    private const val BASE_URL = "https://valiant-enchantment-production.up.railway.app/"
+    // Microservicio de usuario
+    private const val BASE_URL_USUARIOS =
+        "https://valiant-enchantment-production.up.railway.app/"
 
-    private val client = OkHttpClient.Builder().build()
+    // Microservicio de catalogo
+    private const val BASE_URL_CATALOGO =
+        "https://attractive-cooperation-production.up.railway.app/"
+    // Microservicio de provedores
+    private const val BASE_URL_PROVEEDORES =
+        "https://renewed-flexibility-production.up.railway.app/"
+    // Microservicio de Movimiento inventario
+    private const val BASE_URL_MOVIMIENTOS =
+        "https://hearty-optimism-production-d0ae.up.railway.app/"
+    private val retrofitUsuarios: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_USUARIOS)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)              // debe terminar en /
-        .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val retrofitCatalogo: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_CATALOGO)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    private val retrofitProveedores: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_PROVEEDORES)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
-    // API de usuarios/auth
-    val usuarioApi: UsuarioApi = retrofit.create(UsuarioApi::class.java)
+    private val retrofitMovimientos: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_MOVIMIENTOS)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
-    // Si ya tienes una API para Post:
-    // val postApi: PostApi = retrofit.create(PostApi::class.java)
+    val usuarioApi: UsuarioApi by lazy {
+        retrofitUsuarios.create(UsuarioApi::class.java)
+    }
+
+    val catalogoApi: CatalogoApi by lazy {
+        retrofitCatalogo.create(CatalogoApi::class.java)
+    }
+    val proveedorApi: ProveedorApi by lazy {
+        retrofitProveedores.create(ProveedorApi::class.java)
+    }
+    val movimientosApi: MovimientoApi by lazy {
+        retrofitMovimientos.create(MovimientoApi::class.java)
+    }
 }

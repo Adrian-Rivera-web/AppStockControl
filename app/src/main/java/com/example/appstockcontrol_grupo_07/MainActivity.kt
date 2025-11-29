@@ -29,12 +29,10 @@ import com.example.appstockcontrol_grupo_07.viewmodel.UsuarioViewModel
 
 class MainActivity : ComponentActivity() {
 
-    // 🔹 Base de datos (Room) – singleton
     private val database by lazy {
         AppDatabase.getInstance(this)
     }
 
-    // 🔹 Repositorios (ahora UserRepository ya habla con el microservicio)
     private val userRepository by lazy {
         UserRepository(database.userDao())
     }
@@ -47,7 +45,6 @@ class MainActivity : ComponentActivity() {
         CategoriaRepository(database.categoriaDao())
     }
 
-    // 🔹 Factories para ViewModels
     private val productoViewModelFactory by lazy {
         ProductoViewModelFactory(productoRepository)
     }
@@ -64,7 +61,6 @@ class MainActivity : ComponentActivity() {
         FormularioCategoriaViewModelFactory(categoriaRepository)
     }
 
-    // 🔹 ViewModels a nivel de Activity (compartidos en toda la app)
     private val usuarioViewModel: UsuarioViewModel by viewModels()
     private val productoViewModel: ProductoViewModel by viewModels { productoViewModelFactory }
     private val adminViewModel: AdminViewModel by viewModels { adminViewModelFactory }
@@ -73,7 +69,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            // 🌗 Tema actual (comienza igual que el del sistema)
             val systemDark = isSystemInDarkTheme()
             var isDarkTheme by rememberSaveable { mutableStateOf(systemDark) }
 
@@ -89,7 +84,6 @@ class MainActivity : ComponentActivity() {
                         categoriaViewModelFactory = categoriaViewModelFactory,
                         formularioCategoriaViewModelFactory = formularioCategoriaViewModelFactory,
                         onToggleTheme = {
-                            // Solo cambiamos el estado, Compose re-dibuja todo
                             isDarkTheme = !isDarkTheme
                         }
                     )

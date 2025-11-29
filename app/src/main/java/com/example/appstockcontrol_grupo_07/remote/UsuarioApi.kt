@@ -9,8 +9,6 @@ import retrofit2.http.Path
 
 interface UsuarioApi {
 
-    // 🔐 AUTH (AuthController)
-
     @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequestDto
@@ -21,20 +19,14 @@ interface UsuarioApi {
         @Body request: RegistroRequestDto
     ): UsuarioResponseDto
 
-
-    // 👥 USUARIOS (UsuarioController)
-
-    // GET /api/usuarios
     @GET("api/usuarios")
     suspend fun obtenerUsuarios(): List<UsuarioResponseDto>
 
-    // GET /api/usuarios/{id}
     @GET("api/usuarios/{id}")
     suspend fun obtenerUsuarioPorId(
         @Path("id") id: Long
     ): UsuarioResponseDto
 
-    // DELETE /api/usuarios/{id}
     @DELETE("api/usuarios/{id}")
     suspend fun eliminarUsuario(
         @Path("id") id: Long
