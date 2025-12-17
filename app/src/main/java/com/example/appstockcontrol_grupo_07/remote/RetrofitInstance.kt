@@ -7,17 +7,17 @@ object RetrofitInstance {
 
     // Microservicio de usuario
     private const val BASE_URL_USUARIOS =
-        "https://valiant-enchantment-production.up.railway.app/"
+        "https://servicio-usuario-production-5137.up.railway.app/"
 
     // Microservicio de catalogo
     private const val BASE_URL_CATALOGO =
-        "https://attractive-cooperation-production.up.railway.app/"
+        "https://servicio-catalogo-production.up.railway.app/"
     // Microservicio de provedores
     private const val BASE_URL_PROVEEDORES =
-        "https://renewed-flexibility-production.up.railway.app/"
+        "https://serivicio-proovedores-production.up.railway.app/"
     // Microservicio de Movimiento inventario
     private const val BASE_URL_MOVIMIENTOS =
-        "https://hearty-optimism-production-d0ae.up.railway.app/"
+        "https://servicio-movimiento-production.up.railway.app/"
     private val retrofitUsuarios: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL_USUARIOS)
